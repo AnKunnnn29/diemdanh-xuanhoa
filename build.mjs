@@ -1,0 +1,13 @@
+import { build } from 'esbuild';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import {buildUIAssets} from './scripts/build-ui-assets.mjs';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+await buildUIAssets();
+await build({ entryPoints: ['src/app.js'], bundle: true, minify: true, target: 'es2020', outfile: 'dist/app.js' });
+execFileSync(process.execPath, [fileURLToPath(new URL('node_modules/@tailwindcss/cli/dist/index.mjs', import.meta.url)), '-i', 'src/styles.css', '-o', 'dist/styles.css', '--minify'], { stdio: 'inherit' });
+const workerSource=readFileSync('src/service-worker.js','utf8');
+const shellVersion=createHash('sha256').update(readFileSync('dist/app.js')).update(readFileSync('dist/styles.css')).update(readFileSync('dist/index.html')).update(workerSource).digest('hex').slice(0,20);
+writeFileSync('dist/service-worker.js',workerSource.replace('__BUILD_VERSION__',shellVersion));
+console.log('Built Giáo Xứ Xuân Hoà.');

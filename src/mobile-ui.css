@@ -1,0 +1,88 @@
+/* Keep the existing theme; give related actions a shared mobile layout. */
+@media (max-width:39.99rem) {
+  body .button {
+    min-width:0;
+    max-width:100%;
+    min-height:var(--control-height);
+    height:auto;
+    padding:.75rem 1rem;
+    line-height:1.4;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    text-align:center;
+    flex-shrink:1;
+    align-items:center;
+    justify-content:center;
+  }
+  .button svg { flex-shrink:0; }
+  /* Tables become cards on phones, so their actions must fit the card too. */
+  body table .button { min-width:0; max-width:100%; flex-shrink:1; white-space:normal; overflow-wrap:normal; }
+  .page-heading { align-items:stretch; }
+  .page-heading>* { min-width:0; max-width:100%; }
+  .page-heading>.button { width:100%; }
+  .page-heading>.feature-actions { margin-block:0; }
+
+  /* Long action names get a complete row, with the same left/right edges. */
+  .feature-actions,.admin-toolbar,.grade-work-actions,.grade-entry-toolbar,
+  #request-form .wizard-actions,.dialog-actions,.learn-hero-actions {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    align-items:stretch;
+    gap:var(--space-sm);
+    width:100%;
+  }
+  .feature-actions>.button,.admin-toolbar>.button,.grade-work-actions>.button,
+  .grade-entry-toolbar>.button,.dialog-actions>.button,.wizard-actions>.button,
+  .learn-hero-actions>.button { width:100%; justify-self:stretch; }
+  .feature-actions>.field,.admin-toolbar>.field { width:100%; min-width:0; margin:0; }
+  .feature-actions:not(:has(>:not(.button))),.dialog-actions,.wizard-actions,.learn-hero-actions { grid-auto-rows:1fr; }
+  .feature-actions .field :is(input,select),.admin-toolbar .field :is(input,select) { min-width:0; width:100%; }
+  .card-header:has(>.button) { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-sm); }
+  .card-header>.button { width:100%; }
+  .feature-list>li { align-items:stretch; flex-direction:column; }
+  .feature-list>li>.button { width:100%; }
+  .account-assign-link>.button,.admin-form>.button,.management-reminders form>.button { width:100%; justify-self:stretch; }
+
+  /* Equal columns for short, related choices. Hidden controls stay hidden. */
+  .admin-tabs,.scanner-methods,.camera-controls {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-auto-rows:1fr;
+    align-items:stretch;
+    gap:var(--space-sm);
+  }
+  .admin-tabs>.button,.scanner-methods>.button,.camera-controls>.button {
+    width:100%;
+    height:100%;
+    padding:.625rem .5rem;
+    font-size:var(--text-sm);
+  }
+  body .grades-control-bar {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:var(--space-md);
+    padding:var(--space-md);
+  }
+  .grades-control-bar>*,.grades-control-bar .field { min-width:0; width:100%; }
+  body .grades-sem-tabs {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:var(--space-sm);
+    align-items:stretch;
+  }
+  body .grades-sem-btn {
+    min-width:0;
+    width:100%;
+    min-height:var(--control-height);
+    height:auto;
+    padding:.625rem .5rem;
+    line-height:1.4;
+    font-size:var(--text-sm);
+    white-space:normal;
+  }
+  .grades-sem-btn:last-child { grid-column:1/-1; }
+  .grade-entry-toolbar .button { justify-self:stretch; }
+  .input-actions { align-items:stretch; }
+  .input-actions>.button { width:100%; }
+  .education-home .learn-hero-actions>.clay-button { white-space:normal; }
+}

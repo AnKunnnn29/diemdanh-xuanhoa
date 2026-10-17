@@ -1,0 +1,29 @@
+.admin-tabs,.admin-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-block:16px}
+.management-console .card,.management-reminders .card{padding:clamp(16px,2vw,24px)}
+.management-console h2,.management-reminders h2{font-size:20px;font-weight:650;line-height:1.4;margin-bottom:12px}
+.management-console h3{font-size:18px;font-weight:650;margin-block:16px}
+.management-console td{vertical-align:top}
+.management-reminders{display:grid;gap:20px}
+.management-reminders .admin-toolbar{margin-top:0}
+.management-reminders form>button{margin-top:16px}
+.admin-tabs .button{min-height:44px}
+.admin-content{display:grid;gap:20px;min-width:0}
+.admin-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;margin-block:16px;align-items:start}
+.admin-form .field:has(textarea),.admin-form>p,.admin-form>input[type=hidden]{grid-column:1/-1}
+.admin-form .field input,.admin-form .field select,.admin-form textarea{width:100%;min-height:44px}
+.admin-form textarea{min-height:88px;resize:vertical}
+.admin-form button,.admin-form>a{align-self:end;justify-self:start}
+.admin-preview{padding:20px;margin-block:16px;border:2px solid var(--color-rule);border-radius:16px}
+.admin-preview .table-scroll{margin-block:12px}
+.admin-json{white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;padding:12px;font-size:14px;background:var(--color-surface);border:1px solid var(--color-rule);border-radius:8px;min-width:0}
+.admin-message{padding:12px;margin-block:12px;border:1px solid var(--color-rule);border-radius:8px}
+.admin-check{display:flex;align-items:center;gap:12px;min-height:44px;margin-block:8px}
+.admin-check input{width:20px;height:20px;flex-shrink:0}
+.admin-notifications{list-style:none;padding:0;margin:0}
+.admin-notifications li{display:flex;justify-content:space-between;align-items:start;gap:16px;padding-block:20px;border-bottom:1px solid var(--color-rule);overflow-wrap:anywhere}
+.admin-notifications .is-read{background:var(--color-surface)}
+.admin-notifications p{margin-block:8px}
+#admin-feedback:not(:empty){padding:16px;margin-block:12px;border:2px solid var(--color-rule);border-radius:12px}
+.admin-content caption{padding:12px;text-align:left;font-weight:600}
+.admin-content td details summary{min-height:44px;display:flex;align-items:center;cursor:pointer}
+@media(max-width:639px){.admin-tabs{gap:8px}.admin-tabs .button{flex:1 1 140px}.admin-notifications li{flex-wrap:wrap}.admin-preview{padding:12px}.account-identity{max-width:140px}}

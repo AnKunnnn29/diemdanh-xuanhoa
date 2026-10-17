@@ -1,0 +1,10 @@
+# Copy and replace the example values; do not put credentials in git.
+tunnel: 00000000-0000-0000-0000-000000000000
+credentials-file: 'C:/Users/YourWindowsUser/.cloudflared/00000000-0000-0000-0000-000000000000.json'
+ingress:
+  - hostname: diem-danh.example.com
+    service: http://127.0.0.1:8765
+    originRequest:
+      httpHostHeader: diem-danh.example.com
+      connectTimeout: 10s
+  - service: http_status:404

@@ -1,0 +1,133 @@
+/* Playful educational clay system, adapted from the user-supplied public reference. */
+@font-face { font-family: 'Baloo 2'; src: url('assets/baloo2.ttf') format('truetype'); font-weight: 400 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Nunito'; src: url('assets/nunito.ttf') format('truetype'); font-weight: 200 1000; font-style: normal; font-display: swap; }
+@font-face {
+  font-family: 'Newsreader';
+  src: url('assets/newsreader.ttf') format('truetype');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --color-paper: oklch(98% .012 65);
+  --color-paper-2: oklch(95% .018 65);
+  --color-paper-3: oklch(91% .018 65);
+  --color-surface: oklch(99.5% .005 65);
+  --color-ink: oklch(30% .026 255);
+  --color-ink-2: oklch(38% .025 255);
+  --color-muted: oklch(48% .02 255);
+  --color-rule: oklch(84% .014 65);
+  --color-rule-2: oklch(52% .02 255);
+  --color-accent: oklch(39% .10 151);
+  --color-accent-hover: oklch(33% .08 151);
+  --color-accent-soft: oklch(94% .07 145);
+  --color-accent-ink: oklch(99% .005 145);
+  --color-focus: oklch(30% .026 255);
+  --color-primary: oklch(72% .19 145);
+  --color-primary-hover: oklch(78% .17 145);
+  --color-mint: oklch(90% .12 145);
+  --color-sky: oklch(87% .07 220);
+  --color-peach: oklch(87% .07 25);
+  --color-lavender: oklch(93% .04 285);
+  --color-rail: oklch(26% .04 250);
+  --color-rail-active: oklch(35% .04 250);
+  --color-rail-muted: oklch(79% .018 245);
+  --color-error: oklch(43% .15 25);
+  --color-error-soft: oklch(96% .012 25);
+  --color-success: oklch(36% .08 160);
+  --color-success-soft: oklch(96% .012 160);
+  --color-permitted: oklch(41% .07 75);
+  --color-permitted-soft: oklch(96% .018 75);
+  --color-backdrop: oklch(23% .025 245 / .5);
+  --color-transparent: transparent;
+  --font-display: 'Baloo 2', 'Nunito', sans-serif;
+  --font-body: 'Nunito', 'Segoe UI', sans-serif;
+  --space-2xs: .25rem;
+  --space-xs: .5rem;
+  --space-sm: .75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+  --text-xs: .9375rem;
+  --text-sm: 1rem;
+  --text-base: 1.125rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5625rem;
+  --text-display: clamp(2rem, 2.5vw + 1rem, 2.75rem);
+  --text-figure: clamp(3.5rem, 5vw + 1rem, 5.5rem);
+  --rule-hair: 1px;
+  --rule-strong: 2px;
+  --radius-card: 24px;
+  --radius-input: 12px;
+  --radius-pill: 999px;
+  --control-height: 3.25rem;
+  --rail-width: 15.5rem;
+  --mobile-tabs-height: 4rem;
+  --page-max: 84rem;
+  --measure: 65ch;
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --dur-short: 150ms;
+  --z-sticky: 200;
+  --z-base: 1;
+  --z-toast: 500;
+  --shadow-clay: 5px 5px 0 var(--color-ink);
+  --shadow-button: 3px 3px 0 var(--color-ink);
+  --shadow-soft: 0 8px 24px oklch(30% .026 255 / .08);
+  --border-clay: 2px solid var(--color-ink);
+  /* Catechism level colours: Chiên (hồng), Ấu (xanh lá), Thiếu (xanh dương), Nghĩa (vàng), Hiệp (nâu), Dự bị (đỏ) */
+  --color-level-chien: #fce7f3;
+  --color-level-chien-active: #fbcfe8;
+  --color-level-chien-strong: #db2777;
+
+  --color-level-au: #dcfce7;
+  --color-level-au-active: #bbf7d0;
+  --color-level-au-strong: #16a34a;
+
+  --color-level-thieu: #e0f2fe;
+  --color-level-thieu-active: #bae6fd;
+  --color-level-thieu-strong: #0284c7;
+
+  --color-level-nghia: #fef9c3;
+  --color-level-nghia-active: #fef08a;
+  --color-level-nghia-strong: #ca8a04;
+
+  --color-level-hiep: #ede0d4;
+  --color-level-hiep-active: #dfccbe;
+  --color-level-hiep-strong: #8d5b4c;
+
+  --color-level-dubi: #fee2e2;
+  --color-level-dubi-active: #fecaca;
+  --color-level-dubi-strong: #dc2626;
+  /* Evening illustration, scoped to the parish welcome hero. */
+  --color-welcome-night: #102c32;
+  --color-welcome-sky: #25494b;
+  --color-welcome-horizon: #a28560;
+  --color-welcome-cream: #fff2d7;
+  --color-welcome-muted: #d5ddd0;
+  --color-welcome-gold: #ecc481;
+  --color-welcome-gold-soft: #f6dfab;
+  --color-welcome-glow: #e6b56a;
+  --color-welcome-halo: #bd9255;
+  --color-welcome-halo-clear: #bd925500;
+  --color-welcome-stone: #ead9af;
+  --color-welcome-stone-dark: #ae9670;
+  --color-welcome-wall: #e1c99b;
+  --color-welcome-shadow: #776b53;
+  --color-welcome-roof: #30464a;
+  --color-welcome-roof-light: #67736a;
+  --color-welcome-window: #54483e;
+  --color-welcome-window-gold: #ffc969;
+  --color-welcome-hill-far: #365959;
+  --color-welcome-hill-near: #254744;
+  --color-welcome-ground: #163d37;
+  --color-welcome-tree: #244c3c;
+  --color-welcome-tree-dark: #112e2c;
+  --color-welcome-village: #53645a;
+  --color-welcome-path: #bda67b;
+  --color-welcome-path-dark: #5f7561;
+  --color-welcome-bird: #fffaf0;
+  --color-welcome-bird-shadow: #d4e2db;
+  --color-welcome-bird-feather: #aabfb6;
+}

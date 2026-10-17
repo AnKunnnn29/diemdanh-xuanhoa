@@ -1,0 +1,201 @@
+/* Hallmark · macrostructure: illustrated welcome stage · genre: atmospheric/playful
+ * theme: existing parish system · studied: yes (image reference, original artwork)
+ * pre-emit critique: P5 H4 E4 S5 R5 V5 */
+.welcome-hero {
+  position:relative;
+  isolation:isolate;
+  overflow:clip;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  width:100%;
+  min-height:100svh;
+  min-height:100dvh;
+  margin:0;
+  border:0;
+  border-radius:0;
+  background:var(--color-welcome-night);
+  color:var(--color-welcome-cream);
+}
+.welcome-scene { position:absolute; inset:0; overflow:clip; pointer-events:none; }
+.welcome-panorama { position:absolute; inset:0; width:100%; height:100%; }
+.welcome-motion-frame { overflow:visible; }
+.welcome-svg-motion { width:100%; height:100%; transform-box:border-box; }
+.welcome-motion-viewport { display:block; width:100%; height:100%; overflow:visible; }
+.welcome-identity { position:relative; z-index:var(--z-base); justify-self:start; display:flex; align-items:center; gap:var(--space-md); min-width:0; margin-top:calc(clamp(1.5rem,3vw,3rem) + env(safe-area-inset-top)); margin-left:calc(clamp(1.5rem,5vw,5rem) + env(safe-area-inset-left)); margin-right:calc(clamp(1.5rem,5vw,5rem) + env(safe-area-inset-right)); }
+.welcome-identity .parish-logo { width:5.5rem; height:5.5rem; flex-shrink:0; }
+.welcome-identity-copy { min-width:0; display:grid; gap:.125rem; line-height:1.35; }
+.welcome-identity-copy strong { font-family:var(--font-body); font-size:1.625rem; font-weight:800; color:var(--color-welcome-cream); }
+.welcome-identity-copy span { font-size:var(--text-lg); font-weight:600; color:var(--color-welcome-muted); }
+.welcome-copy { position:relative; z-index:var(--z-base); align-self:center; width:48%; max-width:40rem; padding:clamp(2rem,5vw,5rem); padding-right:0; }
+.education-home .welcome-copy h1 { margin:0; color:var(--color-welcome-cream); font-size:clamp(3rem,5vw,5.5rem); line-height:1.12; font-style:normal; overflow-wrap:anywhere; }
+.education-home .welcome-copy h1>.welcome-title-start { display:block; color:var(--color-welcome-cream); }
+.education-home .welcome-copy h1>.welcome-gold-text { position:relative; display:inline-block; color:var(--color-welcome-gold-soft); }
+@supports(background-clip:text) {
+  .education-home .welcome-copy h1>.welcome-gold-text { background:linear-gradient(115deg,var(--color-welcome-cream),var(--color-welcome-gold-soft) 45%,var(--color-welcome-glow)); background-clip:text; color:var(--color-transparent); }
+}
+.welcome-shine-window { position:absolute; inset:0 auto 0 0; width:30%; overflow:hidden; pointer-events:none; opacity:0; mask-image:linear-gradient(90deg,var(--color-transparent),var(--color-ink) 45%,var(--color-transparent)); }
+.welcome-shine-ink { display:block; width:333.333333%; white-space:nowrap; color:var(--color-welcome-cream); }
+.welcome-hero .welcome-primary { position:relative; isolation:isolate; overflow:hidden; min-height:3.75rem; height:auto; margin-top:var(--space-xl); padding:.875rem 1.5rem; background:linear-gradient(125deg,var(--color-welcome-cream),var(--color-welcome-gold-soft)); border:2px solid var(--color-welcome-gold-soft); color:var(--color-welcome-night); font-size:var(--text-lg); font-weight:800; gap:var(--space-md); white-space:nowrap; box-shadow:inset 0 1px 0 var(--color-welcome-cream),0 12px 32px color-mix(in srgb,var(--color-welcome-glow) 16%,var(--color-transparent)); transition:transform 160ms ease-out; }
+.welcome-primary::before { content:""; position:absolute; inset:0 auto 0 0; width:30%; background:linear-gradient(110deg,var(--color-transparent),color-mix(in srgb,var(--color-welcome-cream) 80%,var(--color-transparent)),var(--color-transparent)); transform:translateX(-160%) skewX(-15deg); opacity:0; pointer-events:none; transition:transform 180ms ease-out,opacity 180ms ease-out; }
+@supports(backdrop-filter:blur(8px)) {
+  .welcome-hero .welcome-primary { background:linear-gradient(125deg,color-mix(in srgb,var(--color-welcome-cream) 96%,var(--color-transparent)),color-mix(in srgb,var(--color-welcome-gold-soft) 91%,var(--color-transparent))); backdrop-filter:blur(8px); }
+}
+.welcome-hero .welcome-primary:hover { background:var(--color-welcome-cream); color:var(--color-welcome-night); }
+.welcome-hero .welcome-primary:active { transform:scale(.98); }
+@media(hover:hover) and (pointer:fine) {
+  .welcome-hero .welcome-primary:hover { transform:translateY(-2px); }
+  .welcome-hero .welcome-primary:hover::before { opacity:.65; transform:translateX(440%) skewX(-15deg); }
+  .welcome-hero .welcome-primary:active { transform:scale(.98); }
+}
+.welcome-hero :is(a,button):focus-visible { outline:3px solid var(--color-welcome-cream); outline-offset:5px; }
+.welcome-doves { position:absolute; inset:0; pointer-events:none; }
+.welcome-dove-track { position:absolute; left:0; top:0; width:clamp(2.75rem,6.5vw,6rem); opacity:0; }
+.welcome-dove-float { transform-origin:center; }
+.welcome-dove-depth { transform-origin:center; }
+.welcome-dove-track:nth-child(3) .welcome-dove-depth { opacity:.72; transform:scale(.78); }
+.welcome-dove-track:nth-child(5) .welcome-dove-depth { opacity:.78; transform:scale(.72); }
+.welcome-dust { position:absolute; left:0; top:0; width:3px; height:3px; border-radius:var(--radius-pill); background:var(--color-welcome-cream); box-shadow:0 0 5px var(--color-welcome-gold); opacity:0; }
+.welcome-dove-depth>svg { display:block; width:100%; height:auto; overflow:visible; }
+.welcome-dove-track:nth-child(2) { width:clamp(2.25rem,4.8vw,4.5rem); }
+.welcome-dove-track:nth-child(3) { width:clamp(1.875rem,4vw,3.75rem); }
+.welcome-dove-track:nth-child(4) { width:clamp(2rem,4.4vw,4rem); }
+.welcome-dove-track:nth-child(5) { width:clamp(1.75rem,3.6vw,3.25rem); }
+.dove-wing-near,.dove-wing-far { transform-box:view-box; transform-origin:84px 84px; }
+.dove-body { fill:var(--color-welcome-bird); }
+.dove-shadow { fill:var(--color-welcome-bird-shadow); }
+.dove-feather { stroke:var(--color-welcome-bird-feather); stroke-width:1.3; stroke-linecap:round; }
+.dove-beak { fill:var(--color-welcome-gold); }
+.dove-eye { fill:var(--color-welcome-night); }
+.dove-olive { fill:var(--color-welcome-tree); stroke:var(--color-welcome-tree); stroke-width:1.4; }
+.sky-stop-top { stop-color:var(--color-welcome-night); }
+.sky-stop-mid { stop-color:var(--color-welcome-sky); }
+.sky-stop-bottom { stop-color:var(--color-welcome-horizon); }
+.halo-stop-inner { stop-color:var(--color-welcome-gold); stop-opacity:.5; }
+.halo-stop-mid { stop-color:var(--color-welcome-halo); stop-opacity:.25; }
+.halo-stop-outer { stop-color:var(--color-welcome-halo-clear); }
+.sanctuary-stop-inner { stop-color:var(--color-welcome-window-gold); stop-opacity:.7; }
+.sanctuary-stop-mid { stop-color:var(--color-welcome-glow); stop-opacity:.28; }
+.stone-stop-light { stop-color:var(--color-welcome-stone); }
+.stone-stop-dark { stop-color:var(--color-welcome-stone-dark); }
+.glass-stop-light { stop-color:var(--color-welcome-gold-soft); }
+.glass-stop-dark { stop-color:var(--color-welcome-window-gold); }
+.path-stop-light { stop-color:var(--color-welcome-path); }
+.path-stop-dark { stop-color:var(--color-welcome-path-dark); }
+.welcome-moon { fill:var(--color-welcome-gold-soft); }
+.welcome-moon-motion { transform-origin:1050px 350px; }
+.welcome-halo-motion { transform-origin:1050px 400px; }
+.welcome-sanctuary-light { transform-origin:1027px 700px; opacity:.5; }
+.welcome-church { transform-origin:1027px 864px; }
+.welcome-architecture-layout { transform:translateX(-40px); }
+.welcome-tower-shadow { fill:var(--color-welcome-tree-dark); opacity:.55; }
+.welcome-tower-glow { opacity:.65; }
+.moon-ring { stroke:var(--color-welcome-gold); stroke-width:1; opacity:.35; }
+.welcome-stars { fill:var(--color-welcome-gold-soft); opacity:.65; }
+.welcome-rays { fill:var(--color-welcome-gold); opacity:.035; }
+.welcome-clouds { fill:var(--color-welcome-roof-light); opacity:.25; }
+.hill-far { fill:var(--color-welcome-hill-far); }
+.hill-near { fill:var(--color-welcome-hill-near); }
+.village-wall { fill:var(--color-welcome-village); }
+.village-roof { fill:var(--color-welcome-tree-dark); stroke:var(--color-welcome-roof-light); stroke-width:2; }
+.church-ground { fill:var(--color-welcome-ground); }
+.path-seam { stroke:var(--color-welcome-path-dark); stroke-width:2; opacity:.6; }
+.church-side { fill:var(--color-welcome-stone-dark); }
+.church-roof { fill:var(--color-welcome-roof); stroke:var(--color-welcome-gold); stroke-width:2; stroke-linejoin:round; }
+.roof-rim,.church-gold-line { stroke:var(--color-welcome-gold); stroke-width:3; stroke-linecap:round; }
+.roof-highlight { fill:var(--color-welcome-roof-light); }
+.church-shadow { fill:var(--color-welcome-shadow); opacity:.5; }
+.church-cornice { fill:var(--color-welcome-stone); stroke:var(--color-welcome-stone-dark); stroke-width:2; }
+.bell-recess,.church-door-frame,.church-window-frame { fill:var(--color-welcome-window); }
+.bell,.lamp-cap,.lamp-light { fill:var(--color-welcome-window-gold); }
+.bell-arch-rim { stroke:var(--color-welcome-stone-dark); stroke-width:5; fill:none; }
+.bell-yoke { fill:var(--color-welcome-roof-light); }
+.bell-tower-bronze { fill:var(--color-welcome-glow); stroke:var(--color-welcome-gold); stroke-width:2; }
+.bell-tower-highlight { fill:var(--color-welcome-gold-soft); }
+.bell-tower-lip { fill:var(--color-welcome-gold); }
+.bell-tower-clapper { fill:var(--color-welcome-glow); }
+.tower-clock { fill:var(--color-welcome-roof); stroke:var(--color-welcome-gold); stroke-width:3; }
+.tower-clock-detail { stroke:var(--color-welcome-gold-soft); stroke-width:2; stroke-linecap:round; fill:none; }
+.tower-louvres { stroke:var(--color-welcome-roof-light); stroke-width:4; stroke-linecap:round; }
+.church-facade { fill:var(--color-welcome-wall); }
+.church-stonework { stroke:var(--color-welcome-stone-dark); stroke-width:1.5; opacity:.5; }
+.church-pilaster { fill:var(--color-welcome-stone); }
+.rose-frame { fill:var(--color-welcome-roof); stroke:var(--color-welcome-gold); stroke-width:3; }
+.rose-petals { fill:var(--color-welcome-roof); opacity:.85; }
+.door-detail,.church-mullion { stroke:var(--color-welcome-shadow); stroke-width:2; }
+.church-step { fill:var(--color-welcome-stone-dark); }
+.church-step-line { stroke:var(--color-welcome-stone); stroke-width:2; }
+.tree-trunk,.lamp-post { stroke:var(--color-welcome-tree-dark); stroke-width:6; }
+.tree-crown { fill:var(--color-welcome-tree); stroke:var(--color-welcome-tree-dark); stroke-width:3; }
+.garden-shrubs { fill:var(--color-welcome-tree-dark); }
+.garden-edge { stroke:var(--color-welcome-tree); stroke-width:8; }
+.welcome-edge { position:absolute; inset:auto 0 -1px; width:100%; height:clamp(1.5rem,4vw,4rem); pointer-events:none; fill:var(--color-paper); }
+.welcome-edge-mist { opacity:.2; }
+/* Welcome uses a full scene slide; everyday navigation keeps the menu anchored. */
+:root[data-portal-transition]::view-transition-group(root) { animation:none; }
+:root[data-portal-transition]::view-transition-image-pair(root) { isolation:auto; }
+:root[data-portal-transition]::view-transition-old(root),
+:root[data-portal-transition]::view-transition-new(root) { mix-blend-mode:normal; animation-duration:900ms; animation-timing-function:cubic-bezier(.65,0,.25,1); animation-fill-mode:both; }
+:root[data-portal-transition]::view-transition-old(root) { animation-name:portal-slide-out; }
+:root[data-portal-transition]::view-transition-new(root) { animation-name:portal-slide-in; }
+:root[data-portal-transition="navigation"]::view-transition-old(root),
+:root[data-portal-transition="navigation"]::view-transition-new(root) { animation-duration:460ms; }
+:root[data-portal-transition="navigation"] .sidebar { view-transition-name:workspace-navigation; }
+:root[data-portal-transition="navigation"] .mobile-tabs { view-transition-name:workspace-tabs; }
+:root[data-portal-transition="navigation"]::view-transition { pointer-events:none; }
+:root[data-portal-transition="navigation"]::view-transition-group(workspace-navigation),
+:root[data-portal-transition="navigation"]::view-transition-group(workspace-tabs) { animation:none; z-index:1; }
+:root[data-portal-transition="navigation"]::view-transition-old(workspace-navigation),
+:root[data-portal-transition="navigation"]::view-transition-old(workspace-tabs) { display:none; }
+:root[data-portal-transition="navigation"]::view-transition-new(workspace-navigation),
+:root[data-portal-transition="navigation"]::view-transition-new(workspace-tabs) { animation:none; }
+@keyframes portal-slide-out { from { transform:translateY(0); } to { transform:translateY(-100%); } }
+@keyframes portal-slide-in { from { transform:translateY(100%); } to { transform:translateY(0); } }
+.welcome-community { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:var(--space-xl); padding-block:var(--space-2xl); }
+.welcome-community .learn-facts { margin:0; }
+.welcome-community .hero-progress { padding:var(--space-lg); }
+.welcome-community .hero-progress h2 { font-size:var(--text-lg); }
+@media(max-width:899px) {
+  .welcome-hero { background:linear-gradient(var(--color-welcome-night) 32%,var(--color-welcome-sky) 68%,var(--color-welcome-horizon)); }
+  .welcome-sky-fill { fill:var(--color-transparent); }
+  .welcome-copy { align-self:start; width:100%; max-width:none; padding:var(--space-xl); }
+  .education-home .welcome-copy h1 { font-size:clamp(2.25rem,6.5vw,3.75rem); }
+  .welcome-hero .welcome-primary { margin-top:var(--space-lg); }
+  .welcome-panorama { inset:auto auto min(-32px,calc(75dvh - 570px)) calc(50% - 81.9dvh); width:124.8dvh; max-width:none; height:78dvh; mask-image:linear-gradient(var(--color-transparent),var(--color-ink) 15%); }
+  .welcome-community { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:899px) and (orientation:portrait) {
+  .welcome-architecture-layout { transform:none; }
+  .welcome-church-layout { transform:translate(392px,380px) scale(.56); }
+  .welcome-tower-layout { transform:translate(131.5px,224px) scale(.75); }
+}
+@media(max-width:480px) {
+  .welcome-identity { gap:var(--space-sm); margin-top:calc(var(--space-lg) + env(safe-area-inset-top)); margin-inline:var(--space-lg); }
+  .welcome-identity .parish-logo { width:4.5rem; height:4.5rem; }
+  .welcome-identity-copy strong { font-size:1.25rem; }
+  .welcome-identity-copy span { font-size:1.0625rem; }
+  .welcome-copy { padding-inline:var(--space-lg); }
+  .education-home .welcome-copy h1 { font-size:clamp(2.125rem,9vw,3rem); }
+  .welcome-hero .welcome-primary { font-size:var(--text-base); padding:.875rem 1.25rem; }
+}
+@media(max-width:359px) {
+  .welcome-identity { margin-inline:var(--space-md); }
+  .welcome-identity .parish-logo { width:4rem; height:4rem; }
+  .welcome-copy { padding-inline:var(--space-md); }
+}
+@media(max-width:899px) and (orientation:landscape) {
+  .welcome-identity { margin-top:calc(var(--space-sm) + env(safe-area-inset-top)); gap:var(--space-sm); }
+  .welcome-identity .parish-logo { width:3.5rem; height:3.5rem; }
+  .welcome-identity-copy strong { font-size:1.25rem; }
+  .welcome-identity-copy span { font-size:var(--text-sm); }
+  .welcome-copy { align-self:center; width:48%; padding:var(--space-lg); padding-left:calc(var(--space-lg) + env(safe-area-inset-left)); }
+  .education-home .welcome-copy h1 { font-size:2.125rem; }
+  .welcome-hero .welcome-primary { font-size:var(--text-base); margin-top:var(--space-lg); }
+  .welcome-panorama { inset:0 auto auto calc(70% - 105dvh); width:160dvh; height:100dvh; mask-image:none; }
+}
+@media(prefers-reduced-motion:reduce) {
+  :root[data-portal-transition]::view-transition-old(root),:root[data-portal-transition]::view-transition-new(root) { animation:none; }
+  .welcome-doves { display:none; }
+  .welcome-shine-window { display:none; }
+  .welcome-hero .welcome-primary:is(:hover,:active) { transform:none; }
+  .welcome-primary::before { display:none; }
+}

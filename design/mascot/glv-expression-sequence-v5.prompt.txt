@@ -1,0 +1,26 @@
+Use case: identity-preserve.
+Asset type: 16-frame transparent character animation sprite sheet.
+Input 1 glv-face-v3.png: exact approved mascot identity, warm crisp illustration style, short rounded arms, small hands at belt, brown hat, red/yellow scarf, white shirt, brown backpack and teal roll.
+Input 2 the twelve-frame cover sheet: match its initial front-facing relaxed pose, proportions, head size and consistent body registration.
+Create ONE square 1536x1536 PNG, genuine transparent background, EXACTLY FOUR columns by FOUR rows, 16 equal 384x384 cells. One COMPLETE waist-up chibi mascot per cell, read left-to-right row by row. No labels, no lines, no numbering. Hat top local y=12, belt bottom y=365, body/neck center local x=192. Fit complete character comfortably within each cell, about 285px wide; no adjacent cells overlapping. Keep ALL clothing, belt, body position, head scale, backpack and hand proportions identical. Tiny realistic head orientation and eyelid changes, never mirror the whole body.
+ROW 1: four consecutive gaze frames, both hands resting gently at the belt in all of them:
+frame 1: head looking slightly to viewer's LEFT (about 12 degrees), both eyes open;
+frame 2: head halfway from left toward front (about 6 degrees left);
+frame 3: head front-facing (neutral), both eyes wide open, friendly open smile;
+frame 4: head halfway from front toward right (about 6 degrees right).
+ROW 2: four more face frames, both hands at belt, exact same body:
+frame 5: head looking slightly to viewer's RIGHT (12 degrees), both eyes open;
+frame 6: FRONT-FACING head identical to frame 3, eyelids half lowered for a natural blink;
+frame 7: FRONT-FACING head identical to frame 3, eyes fully CLOSED with soft curved eyelid lines, no pupil visible;
+frame 8: FRONT-FACING head identical to frame 3, eyelids three-quarters closed, intermediate between frames 6 and 7.
+ROW 3: four progressive raise-hand greeting frames, head stays FRONT-FACING, mouth smile constant. Only the arm on the viewer's RIGHT moves, the LEFT hand remains at the belt:
+frame 9: both hands at belt, identical to front frame 3;
+frame 10: right hand lifts slightly off belt to abdomen;
+frame 11: right hand rises to chest, elbow bends naturally;
+frame 12: right hand rises to chin/lower-cheek height, palm beginning to open.
+ROW 4: four upper greeting frames, head and left hand remain unchanged:
+frame 13: right small open palm upright beside cheek, BELOW hat brim, elbow down/out near chest;
+frame 14: same raised hand rotates gently inward by 8 degrees at wrist;
+frame 15: same raised hand rotates gently outward by 8 degrees at wrist;
+frame 16: raised open hand back at neutral wrist, same as frame 13.
+These are genuine adjacent animation poses with SMALL changes. Keep smooth connected short arms at shoulders/elbows/wrists, no arm stumps, no detached hands. Hands have five short soft rounded fingers held close, not rigid splayed adult fingers. No motion lines, no heart, no props, no watermark. Do NOT duplicate the finished raised pose in the earlier raising frames. Preserve all outfit details exactly. Cartoon warmth and clean transparency.

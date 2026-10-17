@@ -1,0 +1,20 @@
+Use case: identity-preserve.
+Asset type: twelve-frame traditional 2D animation sprite sheet, transparent PNG.
+Input 1 glv-face-v3.png: EXACT mascot identity and approved illustration style; use the TOP LEFT front-facing open-eyed waist-up boy with both short hands resting at the belt.
+Input 2 glv-poses-v2.png: reference for the final two-hands-covering-eyes action ONLY. Keep the front-facing head from input 1, do NOT turn it to the side.
+Create a square 1536x1536 transparent sprite sheet arranged in EXACTLY 4 columns by 3 rows: twelve equal 384x512 cells. Read order left-to-right, then next row. Each cell contains ONE COMPLETE fully connected waist-up character, NEVER disconnected parts. No grid, no numbering, no text.
+In every cell the head, hat, nose, mouth, shirt, red scarf, backpack, teal roll and belt are precisely the same size and in exactly the same place. Local head/face center x192, hat top y28, belt bottom y480. Entire mascot inside its own cell with 12px transparent margins. Compact large-head chibi with SHORT rounded arms and little hands as in the approved art. Lock all non-arm artwork across all twelve frames: only the arms and hands progressively move. Keep front-facing friendly smiling face the same throughout. Heads do not bob or jump in the sheet.
+The twelve frames are a chronological continuous RAISE BOTH HANDS TO COVER EYES motion, not a collection of unrelated poses:
+1: initial relaxed pose, both tiny hands resting beside belt like input 1.
+2: wrists lift a small amount from belt, elbows begin bending.
+3: hands rise to lower abdomen, fingers start uncurling.
+4: hands reach middle abdomen, palms angle toward the face.
+5: hands reach lower chest just under scarf knot.
+6: hands reach upper chest, elbows bend comfortably, both palms turning inward.
+7: hands reach neck/chin level, short fingers rounded and close together.
+8: palms reach lower cheeks below mouth level, elbows point down and out, connected visibly to shirt sleeves.
+9: palms rise to cheekbone level, below the eyes.
+10: palms partly overlap the bottom half of the eyes.
+11: palms rise slightly farther, nearly covering both eyes.
+12: final pose, each compact palm fully covers one eye, fingers at eyebrows, hat unobstructed, smiling mouth visible. Same natural rounded arms as the final cover reference.
+Each consecutive frame moves the hands only a SMALL similar distance upward; one smooth coordinated movement. BOTH hands move symmetrically at every stage. Preserve the face and hat registration. Do NOT repeat the idle or fully covered pose in the intermediate cells. Do NOT make hands magically appear at the eyes. Draw the actual in-between arm positions. No adult-long arms, no creepy rigid finger splaying, no extra limbs, no skin gaps at shoulders or wrists. Keep beautiful crisp warm dark-brown outlines and shading from reference. Real transparent background throughout, no shadows or backdrop.

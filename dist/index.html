@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff9f5">
+  <meta name="description" content="Cổng giáo lý Giáo Xứ Xuân Hoà. Quét QR thật, điểm danh và cập nhật sổ Excel của lớp.">
+  <title>Giáo Xứ Xuân Hoà · Cổng giáo lý</title>
+  <link rel="icon" href="assets/logo-xuan-hoa.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body data-auth="out">
+  <a class="skip-link" href="#main-content">Đến nội dung chính</a>
+  <aside class="sidebar">
+    <a class="brand" href="#start" aria-label="Giáo Xứ Xuân Hoà, trang chủ">
+      <svg class="parish-logo" viewBox="0 0 680 680" width="72" height="72" role="img" aria-label="Logo Giáo xứ Xuân Hoà"><defs><clipPath id="parish-shell-1"><circle cx="340" cy="340" r="340"/></clipPath></defs><image href="assets/logo-xuan-hoa.png" x="-5" y="-14" width="700" height="732" clip-path="url(#parish-shell-1)"/></svg>
+      <span><strong>Giáo Xứ<br>Xuân Hoà</strong><small>Cổng giáo lý</small></span>
+    </a>
+    <div class="year-card"><span class="year-icon" data-icon="book"></span><div><small>Năm học giáo lý</small><strong>2026 — 2027</strong></div></div>
+    <nav class="desktop-nav" aria-label="Điều hướng chính">
+      <a href="#start" class="nav-item" data-page="start"><span data-icon="grid"></span>Bắt đầu</a>
+      <a href="#attendance" class="nav-item" data-page="attendance"><span data-icon="qr"></span>Điểm danh</a>
+      <a href="#students" class="nav-item" data-page="students"><span data-icon="users"></span>Thiếu nhi</a>
+      <a href="#grades" class="nav-item" data-page="grades"><span data-icon="chart"></span>Điểm học tập</a>
+      <a href="#requests" class="nav-item" data-page="requests"><span data-icon="calendar"></span>Đơn từ</a>
+      <a href="#files" class="nav-item" data-page="files"><span data-icon="download"></span>Báo cáo & tải sổ</a>
+      <details id="desktop-management-menu"><summary>Quản lý khác</summary>
+        <a href="#notifications" class="nav-item" data-page="notifications">Thông báo & nhắc việc</a>
+        <a href="#administration" class="nav-item" data-page="administration">Quản trị hệ thống</a>
+        <a href="#care" class="nav-item" data-page="care">Theo dõi thiếu nhi</a>
+        <a href="#teachers" class="nav-item" data-page="teachers">Giáo lý viên</a>
+        <a href="#accounts" class="nav-item" data-page="accounts">Tài khoản & phân quyền</a>
+        <a href="#excel" class="nav-item" data-page="excel">Quản lý sổ lớp</a>
+        <a href="#management" class="nav-item" data-page="management">Sao lưu & năm học</a>
+        <a href="#overview" class="nav-item" data-page="overview">Tổng quan</a>
+        <a href="#home" class="nav-item" data-page="home">Giới thiệu giáo xứ</a>
+      </details>
+    </nav>
+    <div class="sidebar-bottom"><div class="parish-mark" data-icon="church"></div><strong>Giáo xứ Xuân Hoà</strong><span>Giáo phận Xuân Lộc</span><span>Giáo hạt Tân Mai</span><div class="prototype-pill"><span></span>Sổ điểm danh Excel</div></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar">
+      <a class="mobile-brand" href="#start"><svg class="parish-logo" viewBox="0 0 680 680" width="72" height="72" role="img" aria-label="Logo Giáo xứ Xuân Hoà"><defs><clipPath id="parish-shell-2"><circle cx="340" cy="340" r="340"/></clipPath></defs><image href="assets/logo-xuan-hoa.png" x="-5" y="-14" width="700" height="732" clip-path="url(#parish-shell-2)"/></svg><span>Giáo Xứ Xuân Hoà<small>Cổng giáo lý</small></span></a>
+      <div class="breadcrumbs"><span>Cổng giáo lý</span><span class="crumb-separator">/</span><strong id="breadcrumb">Tổng quan</strong></div>
+      <div class="topbar-right"><span class="trial-badge">Năm học 2026–2027</span><span class="topbar-divider"></span><span class="avatar">GL</span><div class="profile-text"><strong>Giáo lý viên</strong><small>Quản lý điểm danh</small></div></div>
+    </header>
+    <div class="workspace-classbar"><label class="field" for="workspace-class">Lớp đang chọn<select id="workspace-class"><option value="">Chọn lớp…</option></select></label><small>Dùng cho điểm danh, danh sách, điểm và tải sổ.</small></div>
+    <details class="mobile-menu"><summary><span data-icon="menu"></span>Các công việc khác<span data-icon="chevron"></span></summary><nav aria-label="Các công việc khác"><a href="#notifications">Thông báo & nhắc việc</a><a href="#administration">Quản trị hệ thống</a><a href="#grades">Điểm học tập</a><a href="#requests">Đơn từ</a><a href="#care">Theo dõi thiếu nhi</a><a href="#teachers">Giáo lý viên</a><a href="#accounts">Tài khoản & phân quyền</a><a href="#excel">Quản lý sổ lớp</a><a href="#management">Sao lưu & năm học</a><a href="#overview">Tổng quan</a><a href="#home">Giới thiệu giáo xứ</a></nav></details>
+    <main id="main-content" tabindex="-1">
+      <div class="trial-note"><span data-icon="spark"></span><p><strong>Kết nối sổ Excel</strong> · Điểm danh được lưu vào file lớp.</p></div>
+      <div id="page"></div>
+      <footer class="page-footer"><span>Giáo Xứ Xuân Hoà · Cổng giáo lý</span><span>Cùng đồng hành với thiếu nhi.</span></footer>
+    </main>
+  </div>
+  <nav class="mobile-tabs" aria-label="Điều hướng nhanh">
+    <a href="#start" class="mobile-tab" data-mobile-page="start"><span data-icon="grid"></span><span>Bắt đầu</span></a>
+    <a href="#attendance" class="mobile-tab" data-mobile-page="attendance"><span data-icon="qr"></span><span>Điểm danh</span></a>
+    <a href="#students" class="mobile-tab" data-mobile-page="students"><span data-icon="users"></span><span>Thiếu nhi</span></a>
+    <a href="#files" class="mobile-tab" data-mobile-page="files"><span data-icon="download"></span><span>Tải sổ</span></a>
+  </nav>
+  <dialog id="session-dialog" aria-labelledby="session-title">
+    <form id="session-form">
+      <div class="dialog-heading"><div><span class="eyebrow">ĐIỂM DANH</span><h2 id="session-title">Mở một buổi mới</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Đóng cửa sổ"><span data-icon="close"></span></button></div>
+      <p class="dialog-intro">Chọn ngày và hoạt động trước khi quét thẻ của các em.</p>
+      <label class="field">Ngày điểm danh<input type="date" name="date" id="session-date" required autofocus></label>
+      <label class="field">Hoạt động<select name="activity"><option value="mass">Tham dự Thánh lễ</option><option value="early">Đi lễ sớm</option><option value="lesson">Học giáo lý</option></select></label>
+      <label class="field">Phạm vi lớp<select name="scope" id="session-scope"></select></label>
+      <p class="field-help" id="session-calendar-help"></p><p id="session-error" role="status" aria-live="polite"></p>
+      <div class="dialog-actions"><button type="button" class="button button-secondary" data-close-dialog>Quay lại</button><button type="submit" class="button button-primary">Bắt đầu điểm danh<span data-icon="arrow"></span></button></div>
+    </form>
+  </dialog>
+  <dialog id="close-dialog" role="alertdialog" aria-labelledby="close-title" aria-describedby="close-description">
+    <div class="dialog-heading"><h2 id="close-title">Kết thúc điểm danh?</h2></div>
+    <p id="close-description">Các em chưa điểm danh trong phạm vi buổi này sẽ được đánh dấu nghỉ không phép (O). Các em có mặt (X), nghỉ phép (P) được giữ nguyên; đơn đổi lễ đã duyệt vẫn chờ lễ bù. Lễ bù đến ngày này chưa quét sẽ ghi vắng ở ngày gốc.</p>
+    <div id="close-preview" class="close-preview"></div><button class="button button-text" id="review-before-close" hidden>Xử lý đơn chưa duyệt</button><p id="close-error" role="status" aria-live="polite"></p><div class="dialog-actions"><button type="button" class="button button-secondary" data-close-dialog autofocus>Quay lại</button><button type="button" id="confirm-close" class="button button-primary">Xác nhận kết thúc</button></div>
+  </dialog>
+  <dialog id="profile-dialog" aria-labelledby="profile-dialog-title">
+    <form id="profile-form">
+      <div class="dialog-heading"><div><span class="eyebrow">HỒ SƠ & LÝ LỊCH</span><h2 id="profile-dialog-title">Thông tin thiếu nhi</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Đóng cửa sổ"><span data-icon="close"></span></button></div>
+      <div id="profile-dialog-content"></div>
+      <p id="profile-dialog-error" role="status" aria-live="polite"></p>
+      <div class="dialog-actions"><button type="button" class="button button-secondary" data-close-dialog>Đóng</button><button type="submit" id="profile-save-btn" class="button button-primary"><span data-icon="check"></span>Lưu thông tin</button></div>
+    </form>
+  </dialog>
+  <dialog id="teachers-dialog" aria-labelledby="teachers-dialog-title">
+    <form id="teachers-form">
+      <div class="dialog-heading"><div><span class="eyebrow">PHÂN CÔNG LỚP</span><h2 id="teachers-dialog-title">Giáo lý viên phụ trách</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Đóng cửa sổ"><span data-icon="close"></span></button></div>
+      <input type="hidden" name="classId" id="teachers-class-id">
+      <p class="dialog-intro" id="teachers-dialog-intro">Cập nhật phân công phụ trách lớp và lưu vào file Excel.</p>
+      <label class="field">GLV 1<select name="glv1" id="teachers-glv1"></select></label>
+      <label class="field">GLV 2<select name="glv2" id="teachers-glv2"></select></label>
+      <label class="field">GLV 3<select name="glv3" id="teachers-glv3"></select></label>
+      <label class="field">Soeur đồng hành<select name="souer" id="teachers-souer"></select></label>
+      <p id="teachers-dialog-error" role="status" aria-live="polite"></p>
+      <div class="dialog-actions"><button type="button" class="button button-secondary" data-close-dialog>Huỷ</button><button type="submit" id="teachers-save-btn" class="button button-primary"><span data-icon="check"></span>Lưu thông tin</button></div>
+    </form>
+  </dialog>
+  <dialog id="grades-dialog" aria-labelledby="grades-dialog-title">
+    <form id="grades-form">
+      <div class="dialog-heading"><div><span class="eyebrow">BẢNG ĐIỂM</span><h2 id="grades-dialog-title">Nhập điểm học tập</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Đóng cửa sổ"><span data-icon="close"></span></button></div>
+      <input type="hidden" name="classId" id="grades-edit-class-id">
+      <input type="hidden" name="semester" id="grades-edit-semester">
+      <input type="hidden" name="code" id="grades-edit-code">
+      <div class="grades-edit-student-info" id="grades-student-header"></div>
+      <div id="grades-inputs-container"></div>
+      <p id="grades-dialog-error" role="status" aria-live="polite"></p>
+      <p id="grades-next-help" class="field-help"></p><div class="dialog-actions"><button type="button" class="button button-secondary" data-close-dialog>Đóng</button><button type="submit" id="grades-save-btn" class="button button-primary"><span data-icon="check"></span>Lưu điểm</button><button type="submit" id="grades-save-next" class="button button-secondary" aria-describedby="grades-next-help">Lưu và nhập em tiếp theo</button></div>
+    </form>
+  </dialog>
+  <dialog id="care-dialog" aria-labelledby="care-dialog-title">
+    <div class="dialog-heading"><div><span class="eyebrow">CHUYÊN CẦN</span><h2 id="care-dialog-title">Lịch sử chuyên cần chi tiết</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Đóng cửa sổ"><span data-icon="close"></span></button></div>
+    <div id="care-dialog-content"></div>
+    <div class="dialog-actions"><button type="button" class="button button-secondary" data-close-dialog>Đóng</button></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="grade-reconcile-dialog" aria-labelledby="grade-reconcile-title"><form id="grade-reconcile-form"><div class="dialog-heading"><h2 id="grade-reconcile-title">Giữ file Excel hiện tại?</h2><button type="button" class="icon-button" data-close-dialog aria-label="Đóng"><span data-icon="close"></span></button></div><p>Điểm trong file đã sửa bên ngoài được giữ. Bản điểm chờ xuất được lưu riêng cùng người xử lý và lý do; cần đối chiếu và nhập lại những điểm muốn giữ từ bản đó.</p><label class="field">Tên người xử lý<input name="actor" id="grade-reconcile-actor" required minlength="2" maxlength="100" aria-describedby="grade-reconcile-error"></label><label class="field">Lý do đối chiếu<textarea name="reason" required minlength="3" maxlength="500" rows="2" aria-describedby="grade-reconcile-error"></textarea></label><p id="grade-reconcile-error" role="alert"></p><div class="dialog-actions"><button type="button" class="button button-secondary" data-close-dialog>Quay lại</button><button type="submit" class="button button-primary">Giữ file và lưu bản chờ để đối chiếu</button></div></form></dialog>
+  <div id="scan-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

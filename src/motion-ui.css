@@ -1,0 +1,91 @@
+/* Hallmark · existing playful theme · P5 H4 E5 S5 R5 V4 */
+.parish-logo { display:block; flex-shrink:0; border-radius:50%; overflow:clip; }
+.brand .parish-logo { width:4.5rem; height:4.5rem; }
+.brand { gap:.75rem; }
+.brand strong { font-size:var(--text-lg); }
+.mobile-brand .parish-logo { width:3.5rem; height:3.5rem; }
+.learn-brand .parish-logo { width:4rem; height:4rem; }
+.learn-footer .parish-logo { width:3.5rem; height:3.5rem; }
+.lottie-stage { position:relative; width:100%; aspect-ratio:360/260; contain:layout style; }
+.lottie-stage[data-lottie="bear"] { aspect-ratio:320/280; }
+.lottie-stage[data-lottie="glv"] { aspect-ratio:480/512; }
+.glv-character { display:block; width:100%; height:100%; overflow:visible; }
+.glv-character [data-glv-body] { transform-origin:240px 480px; }
+.lottie-stage>.lottie-poster,.lottie-stage>.lottie-player { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+.lottie-player>svg { display:block; width:100%; height:100%; }
+.lottie-stage[data-lottie-ready="true"]>.lottie-poster { visibility:hidden; }
+.lottie-stage:not([data-lottie-ready="true"])>.lottie-player { visibility:hidden; }
+.auth-shell { width:100%; max-width:60rem; display:grid; gap:1.5rem; align-items:center; }
+.auth-welcome { display:flex; flex-direction:column; align-items:center; gap:.5rem; min-width:0; }
+.auth-brand { display:flex; align-items:center; gap:1rem; }
+.auth-brand .parish-logo { width:5.25rem; height:5.25rem; }
+.auth-brand strong { display:block; font-size:var(--text-lg); font-weight:800; }
+.auth-brand small { display:block; font-size:var(--text-sm); color:var(--color-muted); margin-top:.25rem; }
+.auth-bear { max-width:11rem; }
+.auth-mascot { max-width:12.5rem; }
+.auth-welcome-copy { display:none; }
+.auth-shell .auth-card { max-width:none; }
+.loading-panel { width:100%; max-width:32rem; margin-inline:auto; padding:2rem; text-align:center; }
+.loading-panel .lottie-stage { width:10rem; margin:0 auto .75rem; }
+.loading-panel h2 { font-size:var(--text-xl); font-weight:800; text-wrap:balance; }
+.loading-panel p { margin-top:.75rem; font-size:var(--text-sm); color:var(--color-muted); }
+.landing-book { max-width:24rem; margin-inline:auto; }
+.learn-hero-copy { animation:welcome-in 180ms ease-out both; }
+.auth-card { animation:welcome-in 180ms ease-out both; }
+body[data-motion="paused"] .auth-card,body[data-motion="paused"] .learn-hero-copy { animation:none; }
+@keyframes welcome-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@media(min-width:768px) {
+  .auth-shell { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:3rem; }
+  .auth-brand { flex-direction:column; gap:1rem; text-align:center; }
+  .auth-brand .parish-logo { width:6.5rem; height:6.5rem; }
+  .auth-bear { max-width:19rem; }
+  .auth-mascot { max-width:19rem; }
+  .auth-welcome-copy { display:block; text-align:center; }
+  .auth-welcome-copy h2 { font-family:var(--font-display); font-size:clamp(1.75rem,3vw,2.5rem); font-weight:800; line-height:1.2; text-wrap:balance; }
+  .auth-welcome-copy p { margin:.75rem 0 1rem; font-size:var(--text-sm); color:var(--color-muted); }
+  .learn-brand .parish-logo { width:5rem; height:5rem; }
+  .landing-book { max-width:22rem; }
+}
+@media(max-width:374px) { .auth-brand { gap:.75rem; } .auth-brand .parish-logo { width:4.5rem; height:4.5rem; } .auth-brand strong { font-size:var(--text-base); } .auth-bear { max-width:9rem; } }
+@media(prefers-reduced-motion:reduce) { .learn-hero-copy,.auth-card { animation:none; } }
+
+/* Motion follows the existing parish palette, type and generous controls. */
+:root { --motion-feedback:120ms; --motion-enter:180ms; }
+.lottie-stage[data-lottie="loading"] { aspect-ratio:280/200; }
+.lottie-stage[data-lottie="cat"] { aspect-ratio:1070/456; }
+.lottie-stage[data-lottie="success"] { aspect-ratio:1; }
+.setup-welcome { display:flex; align-items:center; gap:var(--space-md); margin-bottom:var(--space-md); }
+.setup-welcome>div:first-child { flex:1; min-width:0; }
+.setup-cat { flex:0 0 11rem; max-width:35%; }
+.inline-loader { display:inline-block; width:3rem; vertical-align:middle; margin-right:var(--space-xs); }
+.session-complete { position:relative; isolation:isolate; }
+.session-complete-icon { display:grid; place-items:center; width:3rem; height:3rem; margin-bottom:var(--space-md); border-radius:var(--radius-pill); color:var(--color-success); background:var(--color-success-soft); }
+.session-complete-icon svg { width:1.75rem; height:1.75rem; }
+.session-confetti { position:absolute; pointer-events:none; width:min(18rem,100%); inset:0 0 auto auto; z-index:var(--z-base); }
+/* Static success feedback stays visible even when the decorative effect stops. */
+.session-confetti>.lottie-poster { display:none; }
+.button,.icon-button { transition:transform var(--motion-feedback) ease-out; }
+.button:active:not(:disabled),.icon-button:active:not(:disabled) { transform:scale(.98); }
+@media(hover:hover) and (pointer:fine) {
+  .easy-task .button:hover:not(:disabled) { transform:translateY(-2px); }
+  .easy-task .button:active:not(:disabled) { transform:scale(.98); }
+}
+.motion-enter,dialog[open],.toast:not([hidden]) { animation:welcome-in var(--motion-enter) ease-out both; }
+.easy-task.motion-enter:nth-child(2) { animation-delay:25ms; }
+.easy-task.motion-enter:nth-child(3) { animation-delay:50ms; }
+.easy-task.motion-enter:nth-child(4) { animation-delay:75ms; }
+.motion-confirm { animation:confirm-in var(--motion-enter) ease-out both; }
+@keyframes confirm-in { from { transform:scale(.85); opacity:.5; } to { transform:scale(1); opacity:1; } }
+body[data-motion="paused"] :is(.motion-enter,.motion-confirm,dialog[open],.toast:not([hidden])) { animation:none; }
+body[data-motion="paused"] :is(.button,.icon-button) { transition:none; transform:none; }
+body[data-motion="paused"] .session-confetti { display:none; }
+@media(max-width:480px) {
+  .setup-welcome { display:block; }
+  .setup-cat { width:5rem; max-width:100%; margin-top:var(--space-xs); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .motion-enter,.motion-confirm,dialog[open],.toast:not([hidden]) { animation:none; }
+  .button,.icon-button { transition:none; }
+  .button:is(:hover,:active),.icon-button:active { transform:none; }
+  .session-confetti { display:none; }
+}

@@ -1,0 +1,28 @@
+.offline-attendance { margin-block:var(--space-lg); }
+.offline-heading { display:flex; flex-wrap:wrap; gap:var(--space-md); align-items:center; justify-content:space-between; }
+.offline-heading h2,.celebrations-card h2 { font-size:var(--text-lg); }
+.offline-help summary,.offline-queue-details summary { display:list-item; min-height:2.75rem; padding-block:var(--space-sm); cursor:pointer; }
+.offline-queue,.celebration-list,.celebration-missing ul { list-style:none; margin:var(--space-md) 0 0; padding:0; }
+.offline-queue li,.celebration-missing li { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-md); padding-block:var(--space-md); border-top:1px solid var(--color-rule); }
+.offline-queue li>div:first-child,.celebration-missing li>div { min-width:0; flex:1 1 12rem; }
+.offline-queue strong,.offline-queue small,.celebration-missing strong,.celebration-missing small { display:block; overflow-wrap:anywhere; }
+.offline-row-note { display:block; margin-top:var(--space-xs); color:var(--color-ink); font-weight:700; }
+.celebration-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap:var(--space-md); margin-bottom:var(--space-lg); }
+.celebration-filters .field { min-width:0; margin:0; }
+.celebration-filters input,.celebration-filters select { width:100%; min-width:0; min-height:3rem; }
+.celebration-list li { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-md); padding-block:var(--space-lg); border-top:1px solid var(--color-rule); }
+.celebration-date { flex:0 0 4.5rem; text-align:center; padding:var(--space-sm); border-radius:var(--radius-input); background:var(--color-success-soft); color:var(--color-ink); }
+.celebration-date strong { display:block; font-size:1.75rem; line-height:1.2; font-variant-numeric:tabular-nums; }
+.celebration-date span { font-size:var(--text-sm); }
+.celebration-person { flex:1 1 10rem; min-width:0; }
+.celebration-person strong,.celebration-person small,.celebration-kind { display:block; overflow-wrap:anywhere; }
+.celebration-kind { font-weight:700; color:var(--color-success); }
+.celebration-missing { margin-top:var(--space-lg); padding:var(--space-lg); }
+.celebration-missing summary { min-height:2.75rem; font-size:var(--text-lg); font-weight:700; cursor:pointer; }
+.celebration-confirm { display:flex; align-items:center; gap:var(--space-sm); min-height:2.75rem; }
+.celebration-confirm input { flex:0 0 1.25rem; width:1.25rem; height:1.25rem; }
+@media(max-width:480px){
+  .offline-heading>.button { width:100%; }
+  .celebration-list li>.button { margin-left:auto; }
+  .celebration-date { flex-basis:3.75rem; }
+}

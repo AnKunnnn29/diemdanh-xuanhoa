@@ -1,0 +1,21 @@
+{
+  "name": "giao-xu-xuan-hoa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:cloud": "node scripts/build-cloud.mjs",
+    "dev": "node serve.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "clsx": "^2.1.1",
+    "esbuild": "^0.25.0",
+    "jsqr": "1.4.0",
+    "jszip": "3.10.1",
+    "lottie-web": "5.13.0",
+    "tailwind-merge": "^3.3.0",
+    "tailwindcss": "^4.1.0"
+  }
+}
