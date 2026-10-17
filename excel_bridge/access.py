@@ -135,7 +135,7 @@ class Gateway:
             code=self.store.request(values['id'])['code']
             cid=self.store.catalog.students.get(code,{}).get('classId')
             if cid: touched.add(cid)
-        if values.get('sessionId') and path in ('/api/scan','/api/mark','/api/close'):
+        if values.get('sessionId') and path in ('/api/scan','/api/scan-preview','/api/mark','/api/close'):
             session=self.store.session(values['sessionId'])
             scoped=next((c for c in self.store.catalog.classes.values() if c['name']==session['scope']),None)
             if scoped: cid=scoped['id']
@@ -144,7 +144,7 @@ class Gateway:
         if user['role'] == 'Admin': return
         if path in ('/api/sessions','/api/close-makeup'):
             self.scope_access(user,values.get('scope'))
-        elif path in ('/api/scan','/api/mark','/api/close','/api/close-preview'):
+        elif path in ('/api/scan','/api/scan-preview','/api/mark','/api/close','/api/close-preview'):
             session = self.session_access(user,values.get('sessionId'))
             if path == '/api/mark': self.student_access(user,values.get('code'))
             if path == '/api/scan':
@@ -224,7 +224,7 @@ class Gateway:
             self.require_admin(user)
             result = self.accounts.assign_class(self.store,user,values)
         else:
-            names = {'sessions':'create_session','scan':'scan','mark':'set_mark','close':'close_session',
+            names = {'sessions':'create_session','scan':'scan','scan-preview':'scan_preview','mark':'set_mark','close':'close_session',
                 'requests':'create_request','review':'review_request','reschedule-makeup':'reschedule_makeup',
                 'close-preview':'close_preview','close-makeup':'close_makeups','student-profile':'update_profile','grades':'update_grades',
                 'excel-preview':'parity_preview','excel-save':'parity_commit','bulk-preview':'bulk_preview','bulk-save':'bulk_commit',

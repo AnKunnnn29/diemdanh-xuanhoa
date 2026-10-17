@@ -9,8 +9,10 @@ Trang **Bắt đầu** có bốn việc thường dùng, nhớ lớp đang chọ
 ## 1. Điểm danh và mã QR
 
 - Quét bằng camera máy tính/điện thoại, ảnh QR, máy quét USB hoặc nhập mã; tìm theo tên khi quên thẻ.
-- Hiển thị mã, tên thánh, họ tên và lớp trong thông báo; phân biệt đang lưu, đã lưu, trùng và lỗi.
-- Có mặt một chạm; ghi X/P/O vào ngày và hoạt động tương ứng trong sổ lớp.
+- Nhận diện QR mở hộp nổi có mã, tên thánh, họ tên, lớp và buổi đang điểm danh. Chỉ ghi nhận khi bấm **Xác nhận điểm danh**; bấm Hủy hoặc Escape không lưu.
+- Thẻ lớp khác hiển thị **Gửi điểm danh giùm**; sau khi gửi, GLV của lớp duyệt yêu cầu. Tra cứu thẻ chỉ trả thông tin nhận diện, không trả liên hệ gia đình.
+- Camera giữ khung QR trong suốt; tạm dừng đọc khi đang xác nhận và không tự mở lại cùng thẻ đang giữ trước camera. Kết quả đã lưu, trùng, chờ duyệt hoặc lỗi được giữ trong hộp nổi đến khi bấm **Quét tiếp**.
+- Ghi X/P/O vào ngày và hoạt động tương ứng trong sổ lớp; các lượt chọn Có mặt cũng cần xác nhận đúng em trước khi lưu.
 - Ngăn lượt trùng; xem trước và chốt vắng sau buổi; chỉnh buổi đã chốt trên máy quản lý với người xử lý/lý do.
 - Giáo lý và lễ sớm vào Chủ Nhật; lễ sớm 06:00–06:20. Nhập bổ sung ngoài khung giờ phải xác nhận giờ đi thực tế và lý do.
 

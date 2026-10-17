@@ -543,8 +543,20 @@ td { font-size: var(--text-sm); color: var(--color-ink-2); }
 .pending-scans-card { margin-bottom: var(--space-lg); border-left: var(--rule-strong) solid var(--color-permitted); }
 .scanner-surface { min-height: 17rem; background: var(--color-rail); color: var(--color-paper); }
 .scanner-surface p { font-size: var(--text-sm); color: var(--color-rail-muted); }
-.scan-frame { background: var(--color-rail-active); color: var(--color-paper); border-color: var(--color-rail-muted); border-radius: var(--radius-card); }
+.scan-frame { background: transparent; color: var(--color-paper); border-color: var(--color-rail-muted); border-radius: var(--radius-card); }
+.scanner-surface.live .scan-frame { background:transparent; width:min(68%,15rem); height:auto; aspect-ratio:1; margin-bottom:0; border:2px solid var(--color-paper); outline:1px solid var(--color-ink); outline-offset:1px; box-shadow:none; pointer-events:none; }
 .scan-frame svg { color: var(--color-rail-muted); }
+.scan-confirmation { width:min(30rem,calc(100vw - 2rem)); max-width:none; max-height:calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding:var(--space-lg); overflow:auto; color:var(--color-ink); background:var(--color-surface); border-radius:var(--radius-card); }
+.scan-confirmation-heading { display:flex; align-items:center; gap:var(--space-sm); }
+.scan-confirmation-heading h2 { margin:0; font-size:var(--text-lg); }
+.scan-confirmation-saint { margin-top:var(--space-lg); color:var(--color-ink-2); font-size:var(--text-base); }
+.scan-confirmation-name { margin-block:var(--space-2xs) var(--space-sm); font-family:var(--font-display); font-size:var(--text-2xl); font-weight:700; line-height:1.25; overflow-wrap:anywhere; }
+.scan-confirmation-identity { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-sm); }
+.scan-confirmation-session { margin-top:var(--space-md); color:var(--color-ink-2); font-size:var(--text-sm); }
+.scan-confirmation-actions { display:flex; flex-wrap:wrap; gap:var(--space-sm); margin-top:var(--space-lg); }
+.scan-confirmation-actions .button { flex:1; min-height:48px; justify-content:center; }
+.scan-confirmation[data-kind=success] .scan-bubble-icon { background:var(--color-success-soft); color:var(--color-success); }
+@media(max-width:400px) { .scan-confirmation-actions { flex-direction:column; } }
 .camera-controls small { font-size: var(--text-xs); }
 .scan-summary strong { font-family: var(--font-display); font-size: var(--text-display); }
 .scan-summary span { font-size: var(--text-xs); }

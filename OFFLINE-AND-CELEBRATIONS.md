@@ -6,8 +6,9 @@
 Ứng dụng lưu bản dùng ngoại tuyến và danh sách cần thiết trên thiết bị. Mục
 “Điểm danh khi mất mạng” báo khi danh sách đã được lưu.
 
-Quét QR, chọn ảnh QR, tìm tên hoặc bấm Có mặt vẫn giữ được lượt quét khi mất
-mạng. Mỗi lượt nằm trong IndexedDB riêng theo tài khoản, năm học và buổi; không
+Quét QR, chọn ảnh QR, tìm tên hoặc bấm Có mặt mở hộp xác nhận tên, lớp và mã thẻ.
+Chỉ sau khi bấm **Xác nhận điểm danh** mới giữ lượt quét khi mất mạng; hủy hộp
+không ghi vào hàng chờ. Mỗi lượt nằm trong IndexedDB riêng theo tài khoản, năm học và buổi; không
 thay đổi số có mặt trước khi máy chủ xác nhận. Tải lại trang vẫn mở được buổi đã
 lưu trong thời hạn 12 giờ kể từ lần xác thực. Không đăng nhập mới, tạo buổi mới,
 sửa hồ sơ/điểm hoặc tải báo cáo khi ngoại tuyến.

@@ -394,6 +394,20 @@ class ExceptionWorkflow:
         count = self.finish_makeups(cutoff, scope)
         return {'saved': True, 'count': count, 'state': self.bootstrap()}
 
+    def scan_preview(self, values):
+        self.catalog.refresh()
+        session = self.session(values.get('sessionId'))
+        code = str(values.get('code') or '').strip().strip('*').upper()
+        student = self.catalog.students.get(code)
+        if not student:
+            raise ValueError('Không tìm thấy thiếu nhi theo mã thẻ này.')
+        if not self.student_active(code, session['date']):
+            raise ValueError('Thiếu nhi đang tạm nghỉ/nghỉ học vào ngày quét.')
+        return {'student': {key: student.get(key, '') for key in
+                            ('id', 'saintName', 'fullName', 'classId', 'className')},
+                'sessionId': session['id'],
+                'proxy': session['scope'] != 'all' and session['scope'] != student['className']}
+
     def workflow_scan(self, values):
         self.catalog.refresh()
         session = self.session(values.get('sessionId'))

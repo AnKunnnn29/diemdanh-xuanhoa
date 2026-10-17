@@ -22,7 +22,7 @@ TABLES = ('sessions', 'locks', 'requests', 'request_events', 'scans', 'recurring
           'student_status', 'care_notes', 'management_events', 'settings', 'year_plans',
           'issued_codes', 'supplemental_mass', 'pending_scans')
 OPERATIONS = {
-    'sessions': 'create_session', 'scan': 'scan', 'mark': 'set_mark', 'close': 'close_session',
+    'sessions': 'create_session', 'scan': 'scan', 'scan-preview': 'scan_preview', 'mark': 'set_mark', 'close': 'close_session',
     'requests': 'create_request', 'review': 'review_request', 'reschedule-makeup': 'reschedule_makeup',
     'close-preview': 'close_preview', 'close-makeup': 'close_makeups',
     'recurring-preview': 'recurring_preview', 'recurring-mass': 'create_recurring',
@@ -204,7 +204,7 @@ class Workflow(CareRules, ExceptionWorkflow):
             for row in rows:
                 group(row['class_id'])
                 student(row['code'])
-        elif action in ('scan', 'mark', 'close', 'close-preview'):
+        elif action in ('scan', 'scan-preview', 'mark', 'close', 'close-preview'):
             session = self.session(values.get('sessionId'))
             scope(session['scope'])
             if action == 'scan':

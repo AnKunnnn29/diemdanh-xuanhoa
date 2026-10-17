@@ -10,7 +10,7 @@ import jsQR from 'jsqr';
 import { landing } from './landing.js';
 import {requestsPage,requestTable,requestDialogs,requestStates,makeupDate} from './requests-ui.js';
 import {attendanceHistory,summarizeAttendance} from './attendance-metrics.js';
-import {scanAnnouncement,scanBubbleHtml} from './scan-notification.js';
+import {scanAnnouncement,scanBubbleHtml,scanConfirmationHtml} from './scan-notification.js';
 import {createDevelopmentUI} from './development-ui.js';
 import {createManagementUI} from './management-ui.js';
 import {lifecycleStatus} from './care-insights.js';
@@ -242,6 +242,19 @@ const scanBubble=document.createElement('section');
 scanBubble.id='scan-bubble';scanBubble.className='scan-bubble';scanBubble.hidden=true;
 scanBubble.setAttribute('role','region');scanBubble.setAttribute('aria-labelledby','scan-bubble-title');
 document.body.appendChild(scanBubble);
+let scanCandidate=null;
+const scanConfirmation=document.createElement('dialog');
+scanConfirmation.id='scan-confirmation-dialog';scanConfirmation.className='scan-confirmation';
+scanConfirmation.setAttribute('aria-labelledby','scan-confirmation-title');
+scanConfirmation.setAttribute('aria-describedby','scan-confirmation-description');
+document.body.appendChild(scanConfirmation);
+scanConfirmation.addEventListener('cancel',event=>{if(scanCandidate?.phase==='saving')event.preventDefault();});
+scanConfirmation.addEventListener('close',()=>{
+  if(scanConfirmation.open)return;
+  if(scanCandidate?.phase==='choice')return;
+  scanCandidate=null;scanConfirmation.replaceChildren();
+  if(connected&&view==='attendance')((cameraStream?document.getElementById('camera-toggle'):document.getElementById('student-code'))||document.getElementById('main-content'))?.focus({preventScroll:true});
+});
 let requestFilter='all',requestTerm='',reviewId=null,reviewDecision=null,correction=null,scanChoice=null,rescheduleId=null;
 let cameraStream = null;
 let scanTimer = null;
@@ -404,7 +417,7 @@ function syncOfflineScans(){
       applyServer(result.state);
       updateFeedback(result.duplicate||result.replayed?'duplicate':'success',result.duplicate||result.replayed?'Lượt này đã được ghi nhận':'Đã đồng bộ điểm danh',
         result.duplicate||result.replayed?'Máy chủ đã tiếp nhận lượt này trước đó; không ghi lại.':`Đã ghi có mặt cho ngày ${shortDate(result.creditedDate||entry.date)}.`,result.student);
-    },onChoice:(result,entry)=>{if(!document.querySelector('dialog[open]'))openScanChoice(result,entry.code,entry.manual,entry.id);}
+    },onChoice:(result,entry)=>{if(scanCandidate?.code===entry.code||!document.querySelector('dialog[open]'))openScanChoice(result,entry.code,entry.manual,entry.id);}
   })).finally(()=>{
     offlineSyncTask=null;
     if(epoch===authEpoch&&view==='attendance'&&!document.querySelector('dialog[open]'))render();
@@ -498,7 +511,7 @@ function attendance() {
   ${session.closed ? `<div class="closed-notice">${i('checkcircle')}<div><strong>Buổi điểm danh đã chốt</strong><p>Quản lý trên máy Excel có thể điều chỉnh riêng từng em, kèm lý do và lịch sử. Bạn vẫn có thể xem và tải kết quả.</p></div></div>` : ''}
   ${pendingScansBanner(session)}
   <div id="scan-feedback" class="session-feedback">${feedbackHtml()}</div><div id="scan-result-slot"></div><div class="scanner-methods" role="group" aria-label="Cách điểm danh"><button type="button" class="button button-secondary" data-scan-method="camera" aria-pressed="${scanMethod==='camera'}">${i('camera')}Quét camera</button><button type="button" class="button button-secondary" data-scan-method="text" aria-pressed="${scanMethod==='text'}">${i('keyboard')}Nhập mã / Tìm tên</button></div>
-  <div class="scanner-grid"><div class="scanner-column"><section class="card" data-scan-panel="camera" ${scanMethod==='camera'?'':'hidden'}><div class="card-header"><h2><span>${i('camera')}</span>Quét QR</h2><button class="button button-primary" id="camera-toggle" ${session.closed?'disabled':''}>${i('camera')}${cameraStream?'Tắt camera':'Bật camera'}</button></div><div class="scanner-surface ${cameraStream?'live':''}" id="scanner-surface"><video id="camera-video" playsinline muted autoplay ${cameraStream?'':'hidden'}></video><div class="scan-frame">${i('qr')}</div><h3>Đặt mã QR vào khung hình</h3><p>Cho phép truy cập camera khi bạn muốn bắt đầu quét thẻ.</p></div><div class="camera-controls"><label class="button button-text" for="qr-image">Chọn ảnh QR</label><input id="qr-image" type="file" accept="image/*" class="qr-file-input" aria-label="Chọn ảnh mã QR trên thẻ" ${session.closed?'disabled':''}><button class="button button-text" data-focus-code>${i('keyboard')}Dùng mã thẻ</button></div><p id="camera-error" class="inline-message px-5 pb-4" role="status" hidden></p></section>
+  <div class="scanner-grid"><div class="scanner-column"><section class="card" data-scan-panel="camera" ${scanMethod==='camera'?'':'hidden'}><div class="card-header"><h2><span>${i('camera')}</span>Quét QR</h2><button class="button button-primary" id="camera-toggle" ${session.closed?'disabled':''}>${i('camera')}${cameraStream?'Tắt camera':'Bật camera'}</button></div><div class="scanner-surface ${cameraStream?'live':''}" id="scanner-surface"><video id="camera-video" playsinline muted autoplay ${cameraStream?'':'hidden'}></video><div class="scan-frame" aria-hidden="true"></div><h3>Đặt mã QR vào khung hình</h3><p>Cho phép truy cập camera khi bạn muốn bắt đầu quét thẻ.</p></div><div class="camera-controls"><label class="button button-text" for="qr-image">Chọn ảnh QR</label><input id="qr-image" type="file" accept="image/*" class="qr-file-input" aria-label="Chọn ảnh mã QR trên thẻ" ${session.closed?'disabled':''}><button class="button button-text" data-focus-code>${i('keyboard')}Dùng mã thẻ</button></div><p id="camera-error" class="inline-message px-5 pb-4" role="status" hidden></p></section>
   <section class="card" data-scan-panel="text" ${scanMethod==='text'?'':'hidden'}><div class="card-body"><form id="code-form"><div class="manual-input-box"><div class="manual-input-header"><strong>${i('keyboard')}Nhập tay khi quên thẻ / Nhập sau lễ</strong><small>Nhập tên (vd: Lam Anh, Gia Bảo) hoặc mã thẻ (vd: XH22008), rồi nhấn Enter</small></div><div class="input-actions"><label class="field flex-1" for="student-code">Tên hoặc mã thiếu nhi<input id="student-code" name="code" list="student-suggestions" autocomplete="off" spellcheck="false" placeholder="Ví dụ: Lam Anh, Gia Bảo hoặc XH22008..." aria-describedby="scan-feedback code-help" required ${session.closed?'disabled':''}><datalist id="student-suggestions">${sessionPeople(session).map(s=>`<option value="${esc(s.id)}">${esc(s.saintName?s.saintName+' ': '')}${esc(s.fullName)} · ${esc(s.className)} (${esc(s.id)})</option>`).join('')}</datalist></label><button class="button button-primary" type="submit" ${session.closed?'disabled':''}>${i('check')}Ghi nhận</button></div><p class="field-help code-help" id="code-help">💡 Hỗ trợ gõ không dấu. Nếu về nhà nhập sau, hệ thống tự động tìm đúng em và ghi vào Excel.</p></div></form></div></section></div>
   <aside class="scan-side"><section class="card"><div class="card-header"><h2>Kết quả buổi điểm danh</h2>${badge(session.closed?'Đã kết thúc':'Đang mở',session.closed)}</div><div class="card-body"><div class="scan-summary"><div><strong>${st.present}</strong><span>Có mặt</span></div><div><strong>${st.permitted}</strong><span>Nghỉ phép</span></div><div><strong>${st.pending}</strong><span>Chưa ghi nhận</span></div><div><strong>${st.absent}</strong><span>Vắng mặt</span></div></div><p class="field-help">${st.waiting} em chờ lễ bù · ${st.makeupDone} em đã quét lễ bù cho buổi khác · <a href="#requests">Xử lý xin phép / đổi lễ</a></p><div class="progress-label"><span>Đã ghi trạng thái</span><strong>${st.processed} / ${st.total} em</strong></div><div class="progress-track" role="progressbar" aria-label="Tỷ lệ đã ghi trạng thái" aria-valuenow="${st.total?Math.round(st.processed/st.total*100):0}" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill" style="width:${st.total?st.processed/st.total*100:0}%"></div></div><button class="button button-secondary w-full mt-4" data-route="files">${i('download')}Tải sổ lớp</button>${!session.closed?`<button class="button button-text w-full mt-2" id="close-session">Kết thúc điểm danh${i('checkcircle')}</button>`:`<p class="field-help mt-4">Buổi đã chốt. Bạn vẫn có thể xem và tải kết quả.</p>`}</div></section><section class="card"><div class="card-header"><h2>Các buổi đã mở</h2></div><div class="card-body small-session-list">${state.sessions.slice().reverse().map(s=>`<button class="session-choice ${s.id===session.id?'selected':''}" data-open-session="${s.id}"><span>${esc(activities[s.activity])}<small>${shortDate(s.date)} · ${esc(s.scope==='all'?'Tất cả lớp':s.scope)}</small></span>${i(s.closed?'checkcircle':'arrow')}</button>`).join('')}</div></section></aside></div>
   <section class="card attendance-register"><div class="card-header"><h2>Danh sách trong buổi</h2><span id="attendance-count" class="result-count" role="status" aria-live="polite">${attendancePeople(session).length} / ${st.total} em</span></div>
@@ -1222,6 +1235,7 @@ function routeFromHash() {
   if(!connected)return;
   const name=location.hash.slice(1)||'start';
   view=['start','home','overview','attendance','students','celebrations','files','requests','teachers','grades','care','management','excel','accounts','administration','notifications','staff','classes'].includes(name)?name:'start';
+  if(view!=='attendance'){scanCandidate=null;if(scanConfirmation.open)scanConfirmation.close();}
   if(offlineRestored)view='attendance';
   if(!state.isManager&&adminPages.includes(view))view='start';
   document.querySelector('.mobile-menu').open=false;
@@ -1280,6 +1294,13 @@ function newSession() {
 }
 function updateFeedback(kind,title,description,student=null) {
   scanFeedback={kind,title,description,student};
+  if(scanCandidate&&['saving','result'].includes(scanCandidate.phase)&&
+    (student?.id===scanCandidate.code||scanCandidate.phase==='saving'&&!student)){
+    scanCandidate.feedback={kind,title,description};
+    scanCandidate.student=student||scanCandidate.student;
+    scanCandidate.phase=kind==='pending'?'saving':'result';
+    renderScanConfirmation();
+  }
   scanBubbleDismissed=false;renderScanBubble();
   if(kind==='success')queueMicrotask(()=>{
     if(scanFeedback?.kind==='success')scanBubble.querySelector('.scan-bubble-icon')?.classList.add('motion-confirm');
@@ -1344,7 +1365,52 @@ function openStudentChoice(query, matches) {
   dialog.showModal();
 }
 
-function recordCode(raw,obligationDate=null,manual=true) {
+function renderScanConfirmation(){
+  if(!scanCandidate)return;
+  const focused=scanConfirmation.contains(document.activeElement);
+  scanConfirmation.dataset.phase=scanCandidate.phase;
+  scanConfirmation.dataset.kind=scanCandidate.feedback?.kind||'pending';
+  scanConfirmation.setAttribute('aria-busy',String(['lookup','saving'].includes(scanCandidate.phase)));
+  scanConfirmation.innerHTML=scanConfirmationHtml(scanCandidate,{esc,i,classLevelKey,shortDate,activities});
+  if(!scanConfirmation.open)scanConfirmation.showModal();
+  if(focused||scanCandidate.phase==='confirm')scanConfirmation.querySelector('[data-confirm-scan],[data-cancel-scan]')?.focus({preventScroll:true});
+}
+function cancelScanConfirmation(){
+  if(scanCandidate?.phase==='saving')return;
+  scanCandidate=null;
+  if(scanConfirmation.open)scanConfirmation.close();
+}
+async function recordCode(raw,obligationDate=null,manual=true){
+  if(obligationDate)return commitCode(raw,obligationDate,manual);
+  if(scanCandidate)return;
+  const session=current(),code=String(raw||'').trim().toUpperCase().replace(/^\*|\*$/g,'');
+  if(!session||!code)return;
+  if(session.closed){updateFeedback('error','Buổi đã kết thúc','Mở một buổi chưa chốt để điểm danh.');return;}
+  const candidate={code,manual,session:{...session},epoch:authEpoch,phase:'lookup',student:null,proxy:false};
+  scanCandidate=candidate;renderScanConfirmation();
+  try{
+    const known=students.find(s=>s.id===code);
+    const result=known?{student:known,proxy:session.scope!=='all'&&session.scope!==known.className}:
+      await api('scan-preview',{sessionId:session.id,code});
+    if(scanCandidate!==candidate||candidate.epoch!==authEpoch)return;
+    candidate.student=result.student;candidate.proxy=result.proxy;candidate.phase='confirm';
+    document.getElementById('scan-announcement').textContent=scanAnnouncement({title:'Đã nhận diện thiếu nhi',student:result.student,description:'Kiểm tra tên và bấm xác nhận để điểm danh.'});
+  }catch(error){
+    if(scanCandidate!==candidate||candidate.epoch!==authEpoch)return;
+    candidate.phase='result';candidate.feedback={kind:'error',title:'Chưa nhận diện được thiếu nhi',description:error.message};
+  }
+  if(scanCandidate===candidate)renderScanConfirmation();
+}
+async function confirmScannedStudent(){
+  const candidate=scanCandidate;
+  if(!candidate||candidate.phase!=='confirm')return;
+  if(candidate.epoch!==authEpoch||current()?.id!==candidate.session.id){cancelScanConfirmation();return;}
+  candidate.phase='saving';candidate.feedback={kind:'pending',title:candidate.proxy?'Đang gửi điểm danh giùm':'Đang ghi nhận điểm danh',description:'Chờ hệ thống xác nhận kết quả.'};
+  renderScanConfirmation();
+  try{await commitCode(candidate.code,null,candidate.manual);}
+  catch(error){if(scanCandidate===candidate)updateFeedback('error','Chưa ghi nhận điểm danh',error.message,candidate.student);}
+}
+function commitCode(raw,obligationDate=null,manual=true) {
   const scannedSession=current(),sessionId=scannedSession.id, code=String(raw||'').trim().toUpperCase().replace(/^\*|\*$/g,'');
   const recognized=students.find(s=>s.id===code)||null;
   if(state.mode==='cloud'&&recognized&&scannedSession.date===today()&&!scannedSession.closed&&
@@ -1357,6 +1423,7 @@ function recordCode(raw,obligationDate=null,manual=true) {
   }
   if(manual&&scannedSession.activity==='early'&&!earlyWindowOpen(scannedSession)&&students.some(s=>s.id===code)){
     if(!state.isManager){updateFeedback('error','Cần xác nhận nhập bổ sung','Nhờ người quản lý trên máy Excel xác nhận giờ đi lễ thực tế và lý do.');return;}
+    if(scanCandidate?.code===code){scanCandidate.phase='choice';if(scanConfirmation.open)scanConfirmation.close();}
     openCorrection(code,'X',true);return;
   }
   const job=sessionId+'|'+code;
@@ -1576,6 +1643,7 @@ function openCorrection(code,status,forceReview=false){
   document.getElementById('correction-error').textContent='';document.getElementById('correction-dialog').showModal();
 }
 function openScanChoice(result,code,manual,entryId=null){
+  if(scanCandidate?.code===code){scanCandidate.phase='choice';if(scanConfirmation.open)scanConfirmation.close();}
   scanChoice={code,manual,entryId};document.getElementById('scan-choice-person').textContent=(result.student.name||[result.student.saintName,result.student.fullName].filter(Boolean).join(' '))+' · '+result.student.className;
   document.getElementById('scan-choice-options').innerHTML='<legend>Chọn một buổi được tính điểm danh</legend>'+result.options.map(o=>`<label class="scan-choice-option"><input type="radio" name="obligationDate" value="${o.date}" required><span>${o.kind==='makeup'?'Lễ bù cho':'Buổi lễ theo lịch'} ${shortDate(o.date)}</span></label>`).join('');
   document.getElementById('scan-choice-dialog').showModal();
@@ -1621,8 +1689,9 @@ async function cameraToggle() {
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
     if(token!==scanToken||view!=='attendance'||current().closed){stream.getTracks().forEach(t=>t.stop());return;}
     cameraStream=stream;render();
+    document.getElementById('scanner-surface')?.scrollIntoView({block:'center',behavior:'instant'});
     const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d',{willReadFrequently:true});
-    const tick=()=>{if(!cameraStream||view!=='attendance'||token!==scanToken)return;const video=document.getElementById('camera-video');if(video?.readyState>=2&&!document.querySelector('dialog[open]')){const scale=Math.min(1,640/video.videoWidth);canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);ctx.drawImage(video,0,0,canvas.width,canvas.height);const data=ctx.getImageData(0,0,canvas.width,canvas.height);const result=jsQR(data.data,canvas.width,canvas.height,{inversionAttempts:'dontInvert'});const now=Date.now();if(result){const fresh=result.data!==lastDetected.code||now-lastDetected.time>1200;lastDetected={code:result.data,time:now};if(fresh)recordCode(result.data,null,false);}else if(now-lastDetected.time>1200){lastDetected={code:'',time:0};}}scanTimer=setTimeout(tick,250);};tick();
+    const tick=()=>{if(!cameraStream||view!=='attendance'||token!==scanToken)return;const video=document.getElementById('camera-video');if(video?.readyState>=2&&!document.querySelector('dialog[open]')){const scale=Math.min(1,640/video.videoWidth);canvas.width=Math.round(video.videoWidth*scale);canvas.height=Math.round(video.videoHeight*scale);ctx.drawImage(video,0,0,canvas.width,canvas.height);const data=ctx.getImageData(0,0,canvas.width,canvas.height);const result=jsQR(data.data,canvas.width,canvas.height,{inversionAttempts:'dontInvert'});const now=Date.now();if(result){const fresh=result.data!==lastDetected.code;lastDetected={code:result.data,time:now};if(fresh)recordCode(result.data,null,false);}else if(now-lastDetected.time>1200){lastDetected={code:'',time:0};}}scanTimer=setTimeout(tick,250);};tick();
   } catch(e) { if(token!==scanToken||view!=='attendance')return;const target=document.getElementById('camera-error');target.textContent=e.name==='NotAllowedError'?'Camera chưa được cho phép. Hãy cấp quyền camera hoặc dùng ô nhập mã.':'Chưa mở được camera. Kiểm tra thiết bị hoặc dùng ô nhập mã.';target.hidden=false;document.getElementById('camera-toggle').disabled=false;document.getElementById('camera-toggle').innerHTML=`${i('camera')}Bật camera`; }
 }
 
@@ -1670,6 +1739,8 @@ document.addEventListener('click',event=>{
   else if(target.id==='grade-permitted'){const name=document.getElementById('grade-kind').value,input=document.querySelector(`#grade-fields [name="${name}"]`);input.value=input.value.toUpperCase()==='P'?'':'P';input.dispatchEvent(new Event('input',{bubbles:true}));refreshGradeEditor();}
   else if(target.dataset.editGradeMobile)openGradesDialog(target.dataset.editGradeMobile);
   else if(target.id==='download-class-book'){const name=document.getElementById('book-class').value,identifier=classes.find(c=>c.name===name)?.id;if(identifier)downloadGradeFile(false,identifier);}
+  else if(target.hasAttribute('data-confirm-scan'))confirmScannedStudent();
+  else if(target.hasAttribute('data-cancel-scan'))cancelScanConfirmation();
   else if(target.hasAttribute('data-dismiss-scan-bubble'))dismissScanBubble();
   else if(target.dataset.requestStudent)openRequest(target.dataset.requestStudent);
   else if(target.hasAttribute('data-new-request'))openRequest();
@@ -1728,11 +1799,12 @@ document.addEventListener('submit',async event=>{
   else if(event.target.id==='request-form'){event.preventDefault();submitRequest(event);}
   else if(event.target.id==='review-form'){event.preventDefault();submitReview(event);}
   else if(event.target.id==='reschedule-form'){event.preventDefault();submitReschedule(event);}
-  else if(event.target.id==='correction-form'){event.preventDefault();const v=Object.fromEntries(new FormData(event.target));rememberActor(v.actor);changeMark(correction.code,correction.status,v.actor,v.reason,v.attendedTime);}
+  else if(event.target.id==='correction-form'){event.preventDefault();const v=Object.fromEntries(new FormData(event.target));rememberActor(v.actor);if(scanCandidate?.phase==='choice'&&scanCandidate.code===correction.code){scanCandidate.phase='saving';renderScanConfirmation();}changeMark(correction.code,correction.status,v.actor,v.reason,v.attendedTime);}
   else if(event.target.id==='scan-choice-form'){
     event.preventDefault();const v=new FormData(event.target),choice=scanChoice;document.getElementById('scan-choice-dialog').close();
+    if(scanCandidate?.phase==='choice'&&scanCandidate.code===choice.code){scanCandidate.phase='saving';renderScanConfirmation();}
     if(choice.entryId)offlineAttendance.choose(choice.entryId,v.get('obligationDate')).then(()=>syncOfflineScans()).catch(error=>toast(error.message));
-    else recordCode(choice.code,v.get('obligationDate'),choice.manual);
+    else commitCode(choice.code,v.get('obligationDate'),choice.manual);
   }
   else if(event.target.id==='session-form'){
     event.preventDefault();const values=Object.fromEntries(new FormData(event.target)),button=event.target.querySelector('button[type=submit]');button.disabled=true;
@@ -1756,7 +1828,7 @@ document.addEventListener('change',event=>{
   else if(event.target.id==='grade-kind'){refreshGradeEditor();}
   else if(event.target.id==='grade-column-kind'){gradeColumn.changeKind(event.target.value);}
   else if(event.target.id==='grade-mobile-student'){mobileGradeCode=event.target.value;document.querySelectorAll('[data-grade-card]').forEach(card=>card.hidden=card.dataset.gradeCard!==mobileGradeCode);document.getElementById('grade-mobile-empty').hidden=!!mobileGradeCode;}
-  else if(event.target.id==='qr-image'){readQrImage(event.target.files[0]);}
+  else if(event.target.id==='qr-image'){const file=event.target.files[0];event.target.value='';readQrImage(file);}
   else if(event.target.dataset.stateId){openCorrection(event.target.dataset.stateId,event.target.value);}
   else if(event.target.closest('#request-form'))requestFormHelp();
   else if(event.target.id==='request-filter'){requestFilter=event.target.value;refreshRequests();}
@@ -1814,7 +1886,7 @@ const auth=createAuthUI({api,esc,page,state:()=>state,classes:()=>classes,render
     connected=false;stopCamera();clearTimeout(reconnectTimer);reconnectTimer=null;connectionIssue=null;
     classes=[];students=[];classNames=[];state={sessions:[],marks:{},requests:[],requestEvents:[],downloads:[],accounts:[],active:null,isManager:false,pendingScans:[]};
     currentGradesData=null;gradesLoadToken++;gradesLoading=false;gradesClassId='';uncertainGradeSave=null;gradeColumn.clear();
-    scanFeedback=null;scanBubble.hidden=true;workingClass='';studentTerm='';attendanceTerm='';requestTerm='';
+    scanCandidate=null;scanConfirmation.replaceChildren();scanFeedback=null;scanBubble.hidden=true;workingClass='';studentTerm='';attendanceTerm='';requestTerm='';
     document.querySelectorAll('dialog[open]').forEach(d=>d.close());
     for(const id of ['profile-dialog-content','grade-fields','care-dialog-content','request-history-content','feature-fields','parity-fields','parity-preview','request-student-options'])document.getElementById(id)?.replaceChildren();
     document.getElementById('connection-banner')?.remove();
@@ -1852,6 +1924,8 @@ document.addEventListener('click',event=>{
   if(target&&!target.closest('dialog')&&target.matches('[data-open-profile],[data-edit-grade],[data-edit-grade-mobile],[data-edit-teachers],[data-account-edit],[data-account-assign],[data-new-request],[data-request-student],[data-review-id],[data-reschedule-id],#close-session'))dialogOpener=target;
 },true);
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',()=>{
+  if(dialog.id==='scan-confirmation-dialog')return;
+  if(['scan-choice-dialog','correction-dialog'].includes(dialog.id)&&scanCandidate?.phase==='choice')cancelScanConfirmation();
   if(dialog.id==='parity-dialog'||dialog.id==='feature-dialog'||dialog.id==='staff-profile-dialog'||dialog.id==='enrollment-dialog')return;
   if(dialogOpener?.isConnected){dialogOpener.focus({preventScroll:true});return;}
   const attribute=dialogOpener?.getAttributeNames().find(n=>n.startsWith('data-'));

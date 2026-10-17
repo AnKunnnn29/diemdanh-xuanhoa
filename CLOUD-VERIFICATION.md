@@ -2,7 +2,16 @@
 
 Địa chỉ sử dụng: https://giao-xu-xuan-hoa.vercel.app
 
-Production hiện tại: dpl_Mf8go3GBjy8xshYSxvh6vgG2Tdjp. Tên miền chính trỏ đúng bản này; đã bật lại tự gán tên miền cho các lần deploy production tiếp theo sau rollback.
+Production hiện tại: dpl_GSZBQXBbXrYnUF9pSmmMmQybJe8H. Tên miền chính trỏ đúng bản này; đã bật lại tự gán tên miền cho các lần deploy production tiếp theo sau rollback.
+
+## Quét QR và xác nhận tên trước khi điểm danh — 17/10/2026
+
+- Nhận diện mở hộp nổi có tên thánh, họ tên, lớp, mã và ngày/hoạt động. Chỉ bấm Xác nhận điểm danh hoặc Gửi điểm danh giùm mới lưu; Hủy và Escape không lưu.
+- Thẻ lớp khác được tra cứu qua scan-preview, chỉ trả thông tin nhận diện; không ghi điểm danh, tạo yêu cầu chờ duyệt hay trả liên hệ gia đình trong bước xem trước.
+- Camera có khung trong suốt, không có hình QR hoặc mảng màu che giữa. Tạm dừng đọc khi hộp đang mở; giữ cùng thẻ trước camera không tự mở lại sau khi đóng.
+- 33 kiểm thử frontend và 77 kiểm thử backend qua. Chromium và WebKit qua QR ảnh thật, xác nhận, hủy, gửi điểm danh giùm, mã lạ, chống bấm hai lần, bàn phím và ba kích thước màn hình. Chromium thử thêm camera bằng video QR tổng hợp và xác nhận khi mất mạng.
+- Chạy lại đủ luồng ngoại tuyến/sinh nhật trên Chromium và WebKit với bước xác nhận mới: mất mạng và tải lại, mất phản hồi sau lưu, buổi đã chốt, tách tài khoản, hết hạn dữ liệu ngoại tuyến, thiết bị không có IndexedDB, hồ sơ bổn mạng và giao diện đều qua.
+- Dữ liệu QA hoàn toàn tổng hợp. Ảnh và thông tin kiểm tra tại `.local/scan-confirmation-qa/`; không điểm danh thử trên thiếu nhi thật.
 
 ## Điểm danh ngoại tuyến và lịch sinh nhật/bổn mạng — 17/10/2026
 
