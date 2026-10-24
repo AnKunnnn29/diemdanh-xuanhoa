@@ -1,6 +1,6 @@
 const primary=[['home','church','Trang chủ'],['start','grid','Công việc hôm nay']];
 const classroom=[['attendance','qr','Điểm danh'],['students','users','Thiếu nhi'],['celebrations','calendar','Sinh nhật & bổn mạng'],['grades','chart','Điểm học tập'],['requests','calendar','Đơn từ'],['care','heart','Theo dõi thiếu nhi'],['files','file','Báo cáo & tải sổ']];
-const team=[['overview','chart','Tổng quan'],['notifications','calendar','Thông báo & nhắc việc'],['teachers','teacher','Phân công GLV'],['staff','teacher','Hồ sơ GLV']];
+const team=[['reports','chart','Báo cáo chuyên cần'],['overview','chart','Tổng quan'],['notifications','calendar','Thông báo & nhắc việc'],['teachers','teacher','Phân công GLV'],['staff','teacher','Hồ sơ GLV']];
 const administration=[['accounts','users','Tài khoản & phân quyền'],['classes','book','Lớp giáo lý'],['excel','book','Quản lý sổ lớp'],['management','file','Sao lưu & năm học'],['administration','grid','Quản trị hệ thống']];
 export const adminPages=[...administration.map(([page])=>page),'staff'];
 export const classPages=['start','attendance','students','celebrations','grades','requests','care','files','excel'];

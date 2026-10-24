@@ -1,16 +1,23 @@
 // Durable, account-scoped outbox. A queued scan never changes confirmed marks.
 const DB_NAME='xuanhoa-attendance-v1';
-const SESSION_TTL=12*60*60*1000;
+const SESSION_TTL=2*60*60*1000;
 let database;
 function openDatabase(){
   if(!globalThis.indexedDB)return Promise.reject(new Error('Thiết bị chưa hỗ trợ lưu lượt chờ. Điểm danh trực tuyến vẫn dùng được.'));
   if(database)return database;
   database=new Promise((resolve,reject)=>{
-    const request=indexedDB.open(DB_NAME,1);
+    const request=indexedDB.open(DB_NAME,2);
     request.onupgradeneeded=()=>{
-      const entries=request.result.createObjectStore('entries',{keyPath:'id'});
-      entries.createIndex('dedupe','dedupe',{unique:true});entries.createIndex('owner','owner');
-      request.result.createObjectStore('meta',{keyPath:'key'});
+      if(!request.result.objectStoreNames.contains('entries')){
+        const entries=request.result.createObjectStore('entries',{keyPath:'id'});
+        entries.createIndex('dedupe','dedupe',{unique:true});entries.createIndex('owner','owner');
+        request.result.createObjectStore('meta',{keyPath:'key'});
+      }else{
+        // Preserve unsent scans, remove old names and any legacy profile snapshot.
+        request.transaction.objectStore('meta').clear();
+        const cursor=request.transaction.objectStore('entries').openCursor();
+        cursor.onsuccess=()=>{if(cursor.result){const row=cursor.result.value;delete row.name;cursor.result.update(row);cursor.result.continue();}};
+      }
     };
     request.onsuccess=()=>{request.result.onversionchange=()=>{request.result.close();database=null;};resolve(request.result);};
     request.onerror=()=>{database=null;reject(new Error('Chưa lưu được trên thiết bị. Kiểm tra dung lượng hoặc chế độ riêng tư.'));};
@@ -30,7 +37,8 @@ async function transact(store,mode,action){
 export function attendanceSnapshot(data){
   const pick=(row,fields)=>Object.fromEntries(fields.filter(k=>k in row).map(k=>[k,row[k]]));
   const students=data.students.map(s=>Object.fromEntries(['id','name','saintName','fullName','classId','className','enrolledFrom'].map(k=>[k,s[k]??''])));
-  return {year:data.year,yearId:data.yearId,mode:data.mode,user:data.user,classes:data.classes.map(c=>pick(c,['id','name','calendar','archived','count'])),students,
+  return {privacyVersion:data.privacyVersion,attendanceRules:data.attendanceRules||{},celebrations:[],
+    year:data.year,yearId:data.yearId,mode:data.mode,user:data.user,classes:data.classes.map(c=>pick(c,['id','name','calendar','archived','count'])),students,
     sessions:data.sessions,marks:Object.fromEntries(Object.entries(data.marks).map(([k,v])=>[k,pick(v,['status','timestamp'])])),
     requests:data.requests.map(r=>pick(r,['id','code','kind','status','day','activity','target_day','exception_day','actual_day'])),
     studentStatuses:(data.studentStatuses||[]).map(s=>pick(s,['code','status','effective_day'])),
@@ -61,7 +69,8 @@ export function createOfflineAttendance({onChange=()=>{}}={}){
   async function restore(){
     try{
       const cached=await transact('meta','readonly',store=>store.get('session'));
-      if(!cached||cached.expiresAt<=Date.now()||cached.user.mustChangePassword)return null;
+      if(!cached)return null;
+      if(cached.expiresAt<=Date.now()||cached.user.mustChangePassword){await transact('meta','readwrite',store=>store.delete('session'));return null;}
       return cached;
     }catch{return null;}
   }
@@ -81,7 +90,7 @@ export function createOfflineAttendance({onChange=()=>{}}={}){
           if(obligationDate&&entry.obligationDate!==obligationDate){entry={...entry,obligationDate,status:'pending',error:''};store.put(entry);}
         }else{
           entry={id:crypto.randomUUID(),owner:who,dedupe,yearId,sessionId:session.id,date:session.date,activity:session.activity,scope:session.scope,
-            code:student.id,name:student.name,className:student.className,manual,obligationDate,capturedAt,status:'pending',error:''};
+            code:student.id,className:student.className,manual,obligationDate,capturedAt,status:'pending',error:''};
           store.add(entry);
         }
       };

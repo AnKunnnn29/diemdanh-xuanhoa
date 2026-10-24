@@ -12,8 +12,12 @@ class Database:
         if parsed.drivername in ('postgres', 'postgresql', 'postgresql+psycopg'):
             parsed = parsed.set(drivername='postgresql+psycopg')
             # Prepared statements cannot outlive a transaction-pooler connection.
+            import os
+            tls = {'sslmode': 'require'}
+            if os.environ.get('XH_DATABASE_CA_FILE'):
+                tls = {'sslmode': 'verify-full', 'sslrootcert': os.environ['XH_DATABASE_CA_FILE']}
             options = {'connect_args': {'prepare_threshold': None, 'connect_timeout': 8,
-                       'sslmode': 'require'}, 'poolclass': NullPool, 'hide_parameters': True}
+                       **tls}, 'poolclass': NullPool, 'hide_parameters': True}
         elif parsed.drivername.startswith('sqlite') and testing:
             options = {'connect_args': {'check_same_thread': False}, 'poolclass': NullPool}
             if ':memory:' in str(parsed):
@@ -29,7 +33,7 @@ class Database:
         self.testing = testing
 
     @contextmanager
-    def transaction(self, *, readonly=False):
+    def transaction(self, *, readonly=False, serialized=True):
         with self.engine.begin() as connection:
             # Trial traffic is small. Serialize mutations across *all* function
             # instances; process locks do not protect serverless concurrency.
@@ -38,7 +42,7 @@ class Database:
                     connection.execute(text('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY'))
                 connection.execute(text("SET LOCAL statement_timeout = '15000'"))
                 connection.execute(text("SET LOCAL lock_timeout = '8000'"))
-                if not readonly:
+                if not readonly and serialized:
                     connection.execute(text('SELECT pg_advisory_xact_lock(20261016, 8765)'))
             elif connection.dialect.name == 'sqlite':
                 connection.exec_driver_sql('BEGIN' if readonly else 'BEGIN IMMEDIATE')

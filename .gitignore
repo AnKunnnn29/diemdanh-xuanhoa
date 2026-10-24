@@ -48,3 +48,11 @@ htmlcov/
 *.zip
 *.tar.gz
 src/data/staff-plan-*.json
+
+.playwright-cli/
+
+.playwright/
+
+.taste-skill/
+
+*.age

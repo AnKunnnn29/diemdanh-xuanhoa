@@ -1,4 +1,6 @@
 import {createAuthUI} from './auth-ui.js';
+import {createPrivacyUI} from './privacy-ui.js';
+import {createReportsUI} from './reports-ui.js';
 import {createEnrollmentUI} from './enrollment-ui.js';
 import {mountNavigation,openNavigationGroup,adminPages,classPages} from './navigation.js';
 import {createTeacherAssignmentsUI,teacherSlots} from './teacher-assignments-ui.js';
@@ -10,6 +12,7 @@ import jsQR from 'jsqr';
 import { landing } from './landing.js';
 import {requestsPage,requestTable,requestDialogs,requestStates,makeupDate} from './requests-ui.js';
 import {attendanceHistory,summarizeAttendance} from './attendance-metrics.js';
+import {groupSessionAttendance,sessionSummaryHtml} from './session-summary.js';
 import {scanAnnouncement,scanBubbleHtml,scanConfirmationHtml} from './scan-notification.js';
 import {createDevelopmentUI} from './development-ui.js';
 import {createManagementUI} from './management-ui.js';
@@ -139,14 +142,15 @@ function applyServer(data) {
   if(currentGradesData&&!classes.some(c=>c.id===currentGradesData.classId)){currentGradesData=null;gradesClassId='';gradesLoadToken++;gradesLoading=false;gradeColumn.clear();}
   classNames = classes.map(c => c.name);
   if(workingClass&&workingClass!=='all'&&!classNames.includes(workingClass))workingClass='';
-  students = data.students.sort((a, b) => compareClassNames(a.className, b.className));
+  students = data.students.map(person=>data.privacyVersion===2?{...person,_identityOnly:true,fullName:person.name,saintName:'',className:classes.find(c=>c.id===person.classId)?.name||'',...(data.attendanceRules?.[person.id]||{})}:person).sort((a,b)=>compareClassNames(a.className,b.className));
   studentFilter=workingClass||'all';careClassFilter=workingClass||'all';
   const todaySession = data.sessions.find(s => s.date === today() && s.activity === 'mass' && s.scope === 'all');
   const active = (state.active && data.sessions.some(s=>s.id===state.active)) ? state.active : (todaySession ? todaySession.id : (preferences.active && data.sessions.some(s=>s.id===preferences.active) ? preferences.active : data.sessions.at(-1)?.id));
-  state = {mode:data.mode||'excel',yearId:data.yearId,year:data.year,user:data.user,accounts:data.accounts||[],sessions:data.sessions, marks:data.marks, requests:data.requests||[],requestEvents:data.requestEvents||[],recurringMass:data.recurringMass||[],studentStatuses:data.studentStatuses||[],careNotes:data.careNotes||[],managementEvents:data.managementEvents||[],yearPlans:data.yearPlans||[],gradeMode:data.gradeMode||'native',isManager:!!data.isManager, active, pendingScans:data.pendingScans||[], downloads:state.downloads.length?state.downloads:(preferences.downloads || [])};
+  state = {privacyVersion:data.privacyVersion,access:data.access||{},studentDirectory:data.students,celebrations:data.celebrations||[],mode:data.mode||'excel',yearId:data.yearId,year:data.year,user:data.user,accounts:data.accounts||[],sessions:data.sessions, marks:data.marks, requests:data.requests||[],requestEvents:data.requestEvents||[],recurringMass:data.recurringMass||[],studentStatuses:data.studentStatuses||[],careNotes:data.careNotes||[],managementEvents:data.managementEvents||[],yearPlans:data.yearPlans||[],gradeMode:data.gradeMode||'native',isManager:!!data.isManager, active, pendingScans:data.pendingScans||[], downloads:state.downloads.length?state.downloads:(preferences.downloads || [])};
   connected = true;
   if(!offlineRestored)offlineAttendance.remember(data);
 }
+function celebrationPeople(){return state.privacyVersion===2?state.celebrations.map(p=>({...p,className:classes.find(c=>c.id===p.classId)?.name||'',birthDate:p.birthDay?'2000-'+p.birthDay:'',feastConfirmed:!!p.feastDay})):students;}
 function sessionPeople(session) {
   if (session.activity === 'mass') {
     return scoped(session.scope).filter(s => !classes.find(c=>c.id===s.classId)?.archived&&(!s.enrolledFrom || s.enrolledFrom <= session.date)&&lifecycleStatus(state.studentStatuses,s.id,session.date)==='active');
@@ -304,9 +308,10 @@ async function startAttendance(event) {
 }
 function current() { return state.sessions.find(s => s.id === state.active) || state.sessions[0]; }
 const mark = (session, student) => state.marks[key(session, student.id)];
+const completedMakeups=session=>new Set(state.requests.filter(r=>r.kind==='makeup'&&r.status==='completed'&&r.actual_day===session.date&&r.day!==session.date&&session.activity==='mass').map(r=>r.code));
 function stats(session) {
   const people = sessionPeople(session);
-  const completed=new Set(state.requests.filter(r=>r.kind==='makeup'&&r.status==='completed'&&r.actual_day===session.date&&r.day!==session.date&&session.activity==='mass').map(r=>r.code));
+  const completed=completedMakeups(session);
   return { total: people.length, present: people.filter(s => mark(session, s)?.status === 'X').length, permitted: people.filter(s => mark(session, s)?.status === 'P').length, absent: people.filter(s => mark(session, s)?.status === 'O').length, waiting:people.filter(s=>!mark(session,s)&&waitingFor(session,s)).length, makeupDone:people.filter(s=>completed.has(s.id)).length, pending:people.filter(s=>!mark(session,s)&&!waitingFor(session,s)&&!completed.has(s.id)).length, processed:people.filter(s=>mark(session,s)||completed.has(s.id)).length };
 }
 function badge(text, closed = false) { return `<span class="badge ${closed ? 'neutral' : ''}"><span class="badge-dot"></span>${esc(text)}</span>`; }
@@ -314,7 +319,7 @@ function statusLabel(value) {
   const text = { X: 'Có mặt', P: 'Nghỉ phép', O: 'Vắng mặt' };
   return `<span class="status ${value ? value.toLowerCase() : 'empty'}">${value === 'X' ? i('check') : ''}${text[value] || 'Chưa điểm danh'}</span>`;
 }
-function studentCell(student) { return `<div class="student-name"><span class="student-avatar">${esc(student.name.split(' ').at(-1).slice(0,1))}</span><div><strong>${esc(student.fullName)}</strong><small>${esc(student.saintName || "Chưa có tên thánh")} · ${esc(student.id)}</small></div></div>`; }
+function studentCell(student) { return `<div class="student-name"><span class="student-avatar">${esc(student.name.split(' ').at(-1).slice(0,1))}</span><div><strong>${esc(student.fullName)}</strong><small>${esc(student._identityOnly?"Hồ sơ chi tiết theo quyền":student.saintName||"Chưa có tên thánh")} · ${esc(student.id)}</small></div></div>`; }
 function heading(eyebrow, title, description, action = '') { return `<div class="page-heading"><div><h1>${esc(title)}</h1><p>${esc(description)}</p></div>${action}</div>`; }
 function toast(message) { const box = document.getElementById('toast'); clearTimeout(toastTimer); box.textContent = message; box.hidden = false; toastTimer = setTimeout(() => { box.hidden = true; }, 4500); }
 function renderScanBubble(){
@@ -395,7 +400,7 @@ function overview() {
 }
 function feedbackHtml() {
   const f = scanFeedback, student=f?.student;
-  return `<div class="scan-result ${f?.kind || ''}" ${f?.kind==='pending'?'aria-busy="true"':''}><span class="result-icon">${i(f?.kind==='error'?'info':f?.kind==='warning'?'info':f?.kind==='success'?'checkcircle':'qr')}</span><div><strong>${esc(f?.title || 'Sẵn sàng nhận mã thẻ')}</strong><p>${esc(f?.description || 'Quét thẻ QR đã cấp hoặc nhập mã trên thẻ của học sinh.')}</p>${student?`<dl class="scan-student-details"><div><dt>Tên thánh</dt><dd>${esc(student.saintName || 'Chưa có trong danh sách')}</dd></div><div><dt>Họ và tên</dt><dd>${esc(student.fullName)}</dd></div><div><dt>Lớp</dt><dd>${esc(student.className)}</dd></div><div><dt>Mã số</dt><dd class="tabular">${esc(student.id)}</dd></div></dl>`:''}</div></div>`;
+  return `<div class="scan-result ${f?.kind || ''}" ${f?.kind==='pending'?'aria-busy="true"':''}><span class="result-icon">${i(f?.kind==='error'?'info':f?.kind==='warning'?'info':f?.kind==='success'?'checkcircle':'qr')}</span><div><strong>${esc(f?.title || 'Sẵn sàng nhận mã thẻ')}</strong><p>${esc(f?.description || 'Quét thẻ QR đã cấp hoặc nhập mã trên thẻ của học sinh.')}</p>${student?`<dl class="scan-student-details"><div><dt>Tên thánh</dt><dd>${esc(student._identityOnly?'Xem khi có kết nối':student.saintName||'Chưa có trong danh sách')}</dd></div><div><dt>Họ và tên</dt><dd>${esc(student.fullName)}</dd></div><div><dt>Lớp</dt><dd>${esc(student.className)}</dd></div><div><dt>Mã số</dt><dd class="tabular">${esc(student.id)}</dd></div></dl>`:''}</div></div>`;
 }
 
 function offlineSlot(){return state.mode==='cloud'?'<div id="offline-attendance-slot"></div>':'';}
@@ -497,13 +502,19 @@ function pendingScansBanner(session) {
   </section>`;
 }
 
+function sessionSummary(session){
+  const completed=completedMakeups(session);
+  return sessionSummaryHtml(groupSessionAttendance(sessionPeople(session),{
+    markFor:student=>mark(session,student),isWaiting:student=>waitingFor(session,student),isMakeupDone:student=>completed.has(student.id)
+  }),{esc,timeOf});
+}
 function attendance() {
   const session = current();
   if(!session)return heading('','Điểm danh thiếu nhi','Mở buổi khi còn mạng để chuẩn bị điểm danh ngoại tuyến.')+offlineSlot()+attendanceSetup({esc,classes,draft:attendanceDraft||{date:today(),activity:'mass',scope:workingClass},error:attendanceSetupError,activities,maxDate:today()});
   const st = stats(session);
   const sunday = isSunday(session.date);
   if(attendanceStage==='setup')return heading('','Điểm danh thiếu nhi','Chọn đúng buổi trước khi quét thẻ.')+offlineSlot()+attendanceSetup({setupAnimation:animationStage('cat','setup-cat'),esc,classes,draft:attendanceDraft||{date:today(),activity:'mass',scope:workingClass},error:attendanceSetupError,activities,maxDate:today()});
-  if(session.closed)return `${heading('','Đã kết thúc điểm danh',`${activities[session.activity]} · ${shortDate(session.date)} · ${session.scope==='all'?'Tất cả lớp':session.scope}`)}${flowSteps('finished')}${offlineSlot()}<section class="card session-complete"><div class="card-body"><span class="session-complete-icon" aria-hidden="true">${i('checkcircle')}</span><h2>Kết quả đã được lưu</h2><p>${st.present} em có mặt · ${st.permitted} em nghỉ phép · ${st.absent} em vắng.</p><div class="feature-actions"><button class="button button-primary" data-route="files">${i('download')}Tải sổ lớp</button><button class="button button-secondary" id="change-attendance-session">Chọn buổi khác</button></div></div></section><details class="easy-advanced mt-6"><summary>Xem danh sách đã điểm danh</summary><p>Người quản lý có thể sửa từng em và ghi rõ lý do.</p><div id="attendance-rows">${recentRows(session,true)}</div></details>`;
+  if(session.closed)return `${heading('','Đã kết thúc điểm danh',`${activities[session.activity]} · ${shortDate(session.date)} · ${session.scope==='all'?'Tất cả lớp':session.scope}`)}${flowSteps('finished')}${offlineSlot()}<section class="card session-complete"><div class="card-body"><span class="session-complete-icon" aria-hidden="true">${i('checkcircle')}</span><h2>Kết quả đã được lưu</h2><p>${st.present} em có mặt · ${st.permitted} em nghỉ phép · ${st.absent} em vắng không phép.</p><div class="feature-actions"><button class="button button-primary" data-route="files">${i('download')}Tải sổ lớp</button><button class="button button-secondary" id="change-attendance-session">Chọn buổi khác</button></div></div></section>${sessionSummary(session)}<details class="easy-advanced mt-6"><summary>Xem danh sách đã điểm danh</summary><p>${state.isManager?'Người quản lý có thể sửa từng em và ghi rõ lý do.':'Kết quả chi tiết của các em trong buổi đã kết thúc.'}</p><div id="attendance-rows">${recentRows(session,true)}</div></details>`;
   return `${heading('','Điểm danh thiếu nhi','Quét thẻ hoặc nhập tên; kết quả được lưu sau mỗi lượt.')}
   ${flowSteps(session.closed?'finished':'scan')}${offlineSlot()}
   <div class="easy-session-context"><div><strong>${esc(session.scope==='all'?'Tất cả lớp':session.scope)}</strong><small>${esc(activities[session.activity])} · ${shortDate(session.date)}</small></div><button type="button" class="button button-secondary" id="change-attendance-session">Đổi buổi</button></div>
@@ -548,25 +559,12 @@ function studentView() {
     <div class="table-wrap">
       <table class="student-roster-table">
         <caption class="sr-only">Danh sách thiếu nhi và thao tác theo từng em</caption>
-        <colgroup><col class="student-col-name"><col class="student-col-class"><col class="student-col-gender"><col class="student-col-birth"><col class="student-col-phone"><col class="student-col-actions"></colgroup>
-        <thead>
-          <tr>
-            <th scope="col">Thiếu nhi</th>
-            <th scope="col">Lớp giáo lý</th>
-            <th scope="col">Giới tính</th>
-            <th scope="col">Ngày sinh</th>
-            <th scope="col">Phụ huynh & liên hệ</th>
-            <th scope="col">Thao tác</th>
-          </tr>
-        </thead>
+        <thead><tr><th scope="col">Thiếu nhi</th><th scope="col">Lớp giáo lý</th><th scope="col">Thao tác</th></tr></thead>
         <tbody id="student-rows">
           ${people.map(s=>`
-            <tr data-search="${esc((s.name+' '+s.id+' '+(s.phone||'')+' '+(s.parents||'')+' '+(s.address||'')+' '+(s.subParish||'')).toLocaleLowerCase('vi-VN'))}">
+            <tr data-search="${esc((s.name+' '+s.id).toLocaleLowerCase('vi-VN'))}">
               <td>${studentCell(s)}</td>
               <td><span class="class-pill" data-level="${classLevelKey(s.className)}">${esc(s.className)}</span><small class="block">${esc({active:'Đang học',paused:'Tạm nghỉ',left:'Nghỉ học'}[development.status(s.id)])}</small></td>
-              <td>${esc(s.gender || '—')}</td>
-              <td class="tabular">${esc(/^\d{4}-\d{2}-\d{2}$/.test(s.birthDate)?s.birthDate.split('-').reverse().join('/'):s.birthDate||'—')}</td>
-              <td>${parentContactMarkup(s,{esc,icon:i('phone')})}</td>
               <td>
                 <div class="student-row-actions">
                   <button class="button button-soft button-xs" data-open-profile="${s.id}">Hồ sơ</button>
@@ -583,9 +581,15 @@ function studentView() {
   </section>`;
 }
 
-function openProfile(code) {
-  const s = students.find(x => x.id === code);
+let profileLoadId=0;
+async function openProfile(code) {
+  let s = students.find(x => x.id === code);
   if (!s) return;
+  const load=++profileLoadId;
+  if(state.mode==='cloud'){
+    try{const detail=await api('student-detail?code='+encodeURIComponent(code));if(load!==profileLoadId)return;s={...s,...detail.student,className:s.className};}
+    catch(error){toast(error.message);return;}
+  }
   const dialog = document.getElementById('profile-dialog');
   document.getElementById('profile-dialog-title').textContent = 'Hồ sơ thiếu nhi';
   document.getElementById('profile-dialog-error').textContent = '';
@@ -619,14 +623,12 @@ function openProfile(code) {
           <input type="text" name="baptismDate" value="${esc(s.baptismDate || '')}" placeholder="dd/mm/yyyy">
         </label>
         ${state.mode==='cloud'?feastProfileFields(s,{esc}):''}
-        ${contactFields(s,{esc})}
+        ${state.mode==='cloud'?privacyUI.slot(s):contactFields(s,{esc})}
         <label class="field">Giáo họ (Họ lẻ)
           <input type="text" name="subParish" value="${esc(s.subParish || '')}" placeholder="Tên giáo họ">
         </label>
       </div>
-      <label class="field">Địa chỉ thường trú
-        <input type="text" name="address" value="${esc(s.address || '')}" placeholder="Địa chỉ gia đình">
-      </label>
+      ${state.mode==='cloud'?'':`<label class="field">Địa chỉ thường trú<input type="text" name="address" value="${esc(s.address||'')}"></label>`}
     </div>
   `;
   dialog.showModal();
@@ -675,7 +677,7 @@ function filesView() {
   if(exportClass !== 'all' && session.scope !== 'all' && exportClass !== session.scope) exportClass='all';
   if(!state.isManager)exportClass=session.scope;
   return `${heading('BÁO CÁO & FILE','Báo cáo & tải sổ','Chọn lớp và tải sổ đã có điểm danh, điểm học tập và tổng kết.')}
-  <section class="card easy-book"><div class="card-body"><h2>Tải sổ của một lớp</h2><label class="field">Lớp cần tải<select id="book-class"><option value="">Chọn lớp…</option>${classes.map(c=>`<option value="${esc(c.name)}" ${c.name===workingClass?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><button type="button" id="download-class-book" class="button button-primary" ${!workingClass||workingClass==='all'?'disabled':''}>${i('download')}Tải sổ lớp</button><p id="book-export-message" role="status" aria-live="polite">${!workingClass||workingClass==='all'?'Chọn một lớp để tải sổ.':'Sổ cả năm học '+esc(document.querySelector('.year-card strong').textContent)+' · '+esc(workingClass)+'. Gồm điểm danh và các kết quả đã lưu.'}</p>${state.isManager?'<a class="button button-secondary" href="#excel">In / Lưu PDF</a>':''}</div></section>
+  <section class="card easy-book"><div class="card-body"><h2>Tải hồ sơ của một lớp</h2><label class="field">Lớp cần tải<select id="book-class"><option value="">Chọn lớp…</option>${classes.map(c=>`<option value="${esc(c.name)}" ${c.name===workingClass?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><button type="button" id="download-class-book" class="button button-primary" ${!workingClass||workingClass==='all'?'disabled':''}>${i('download')}${workingClass&&workingClass!=='all'?'Tải hồ sơ lớp '+esc(workingClass):'Chọn lớp để tải'}</button><p id="book-export-message" role="status" aria-live="polite">${!workingClass||workingClass==='all'?'Chọn một lớp để tải hồ sơ.':'Sổ hồ sơ lớp '+esc(workingClass)+' · cả năm học '+esc(document.querySelector('.year-card strong').textContent)+' · file .xlsm gồm điểm danh, kết quả học tập và hồ sơ của lớp.'}</p>${state.isManager?'<a class="button button-secondary" href="#excel">In / Lưu PDF</a>':''}</div></section>
   <details class="easy-advanced mt-6"><summary>Tải nhiều lớp hoặc theo buổi</summary>
   <div class="export-grid"><section class="card export-form-card"><div class="card-header"><h2>${i('file')}Xuất danh sách điểm danh</h2>${badge('Sổ lớp đã kết nối')}</div><div class="card-body"><div class="export-preview"><span>${i('file')}</span><div><strong>${esc(activities[session.activity])}</strong><small>${shortDate(session.date)} · ${st.total} em trong phạm vi buổi</small></div></div><form id="export-form"><label class="field">Buổi điểm danh<select id="export-session">${state.sessions.map(s=>`<option value="${s.id}" ${s.id===session.id?'selected':''}>${shortDate(s.date)} · ${esc(activities[s.activity])} · ${esc(s.scope==='all'?'Tất cả lớp':s.scope)}</option>`).join('')}</select></label><label class="field">Lớp cần tải<select id="export-class"><option value="all" ${exportClass==='all'?'selected':''}>Tất cả lớp trong buổi</option>${classNames.filter(c=>session.scope==='all'||session.scope===c).map(c=>`<option ${exportClass===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label><div id="export-plan">${exportPlan(session,exportClass)}</div><div class="flex flex-wrap gap-3"><button type="submit" id="export-submit" class="button button-primary">${i('download')}<span>${exportClass==='all'?'Tải ZIP':'Tải Excel'}</span></button><button type="button" id="export-all" class="button button-secondary" ${exportClass==='all'?'hidden':''}>${i('file')}Tải tất cả lớp (ZIP)</button></div><p id="export-message" class="field-help mt-4" role="status" aria-live="polite"></p></form></div></section><aside class="card export-info-card"><div class="card-header"><h2>File tải về gồm những gì?</h2></div><div class="card-body"><ul class="info-list"><li>${i('checkcircle')}Mã số, họ tên và lớp của các em.</li><li>${i('checkcircle')}Ngày, hoạt động, trạng thái X / O / P.</li><li>${i('checkcircle')}Nguyên mẫu sổ lớp, các tháng và công thức tổng kết.</li><li>${i('info')}File .xlsm thật của từng lớp, giữ nguyên VBA.</li></ul><div class="mt-6 border-t border-slate-100 pt-4"><p class="field-help">File tải xuống gồm toàn bộ năm học.</p></div></div></aside></div></details>
   <section class="card mt-6"><div class="card-header"><h2>${i('clock')}Các lần tải trên thiết bị này</h2></div>${state.downloads.length?`<div class="table-wrap"><table><thead><tr><th scope="col">File</th><th scope="col">Phạm vi</th><th scope="col">Thời gian</th></tr></thead><tbody>${state.downloads.slice().reverse().slice(0,8).map(d=>`<tr><td class="font-medium text-slate-700">${esc(d.filename)}</td><td>${esc(d.scope)}</td><td class="tabular">${shortDate(d.date)} · ${timeOf(d.timestamp)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="empty-state">${i('download')}<p>Chưa tải file nào. Chọn buổi và lớp ở phía trên để tải bản đầu tiên.</p></div>`}</section>`;
@@ -1007,7 +1009,9 @@ async function verifyGradeSave(){
 }
 
 async function downloadGradeFile(pending=false,bookClassId=null){
+  const downloadEpoch=authEpoch;
   const targetClassId=bookClassId||gradesClassId;
+  if(state.mode==='cloud'){if(!privacyUI.allowed('privateExport',targetClassId)){toast('Bạn chưa được cấp quyền tải hồ sơ đầy đủ của lớp này.');return;}if(!await privacyUI.confirmExport())return;}
   const button=document.getElementById(bookClassId?'download-class-book':pending?'download-pending-grade-file':'download-grade-file'),message=document.getElementById(bookClassId?'book-export-message':'grade-export-message');
   button.disabled=true;button.setAttribute('aria-busy','true');busyFeedback(message,'Đang chuẩn bị Excel với kết quả đã tính…');
   await queueWrite(async()=>{
@@ -1015,7 +1019,7 @@ async function downloadGradeFile(pending=false,bookClassId=null){
       const response=await fetch('/api/'+(pending?'grade-pending-export':'grade-export')+'?classId='+encodeURIComponent(targetClassId),{cache:'no-store'});
       if(!response.ok){const result=await response.json();throw new Error(result.error||'Chưa xuất được Excel.');}
       const name=(pending?'DiemChoDoiChieu_':'')+(classes.find(c=>c.id===targetClassId)?.filename||'BangDiem.xlsm');
-      downloadBlob(await response.arrayBuffer(),name,response.headers.get('Content-Type'));
+      const bytes=await response.arrayBuffer();if(downloadEpoch!==authEpoch)return;downloadBlob(bytes,name,response.headers.get('Content-Type'));
       message.textContent=pending?'Đã tải bản chờ để đối chiếu.':'Đã tải sổ lớp có kết quả điểm danh và học tập.';
     }catch(error){message.textContent=error.message;}finally{button.disabled=false;button.removeAttribute('aria-busy');}
   });
@@ -1199,7 +1203,7 @@ function render() {
   const scrollPosition=window.scrollY;
   const activeStudent = document.activeElement?.dataset?.stateId||document.activeElement?.dataset?.quickAttend;
   if(view!=='attendance') stopCamera();
-  const labels = { celebrations:'Sinh nhật & bổn mạng',classes:'Lớp giáo lý',staff:'Hồ sơ GLV',administration:'Quản trị hệ thống',notifications:'Thông báo & nhắc việc',start:'Công việc hôm nay',home:'Trang chủ', overview:'Tổng quan', attendance:'Điểm danh QR', students:'Thiếu nhi & lớp', files:'Báo cáo & tải sổ', requests:'Xin phép & đổi lễ', teachers:'Phân công GLV', grades:'Bảng điểm', care:'Theo dõi thiếu nhi',management:'Sao lưu & năm học',excel:'Sổ lớp & báo cáo',accounts:'Tài khoản & phân quyền' };
+  const labels = { reports:'Báo cáo chuyên cần',celebrations:'Sinh nhật & bổn mạng',classes:'Lớp giáo lý',staff:'Hồ sơ GLV',administration:'Quản trị hệ thống',notifications:'Thông báo & nhắc việc',start:'Công việc hôm nay',home:'Trang chủ', overview:'Tổng quan', attendance:'Điểm danh QR', students:'Thiếu nhi & lớp', files:'Báo cáo & tải sổ', requests:'Xin phép & đổi lễ', teachers:'Phân công GLV', grades:'Bảng điểm', care:'Theo dõi thiếu nhi',management:'Sao lưu & năm học',excel:'Sổ lớp & báo cáo',accounts:'Tài khoản & phân quyền' };
   document.getElementById('breadcrumb').textContent = labels[view] || 'Tổng quan';
   document.title = `${labels[view]} · Giáo Xứ Xuân Hoà`;
   document.querySelectorAll('[data-page]').forEach(a=>{a.className=cn('nav-item',a.dataset.page===view&&'active');if(a.dataset.page===view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
@@ -1208,7 +1212,7 @@ function render() {
   document.body.toggleAttribute('data-class-context',classPages.includes(view)&&classes.length>0);
   document.getElementById('mobile-menu-label').textContent=labels[view]||'Điều hướng';
   workContext();
-  page.innerHTML = !classes.length&&classPages.includes(view)?'<section class="card auth-empty"><h1>Chưa được phân công lớp</h1><p>Liên hệ Admin để được phân công. Sau đó tải lại trang để mở sổ lớp.</p><a class="button button-secondary" href="#home">Về trang chủ</a></section>':view==='classes'?enrollment.page():view==='staff'?management.staffDirectory():view==='administration'?management.page():view==='notifications'?management.notificationsPage():view==='accounts'?auth.accountsPage():view==='start'?startPage({esc,i,workingClass,today,longDate,students,requests:state.requests,sessions:state.sessions,careNotes:state.careNotes}):view==='home'?landing({i,esc,students,classNames,session:current(),stats,activities,shortDate,feedback:scanFeedback,classLevelKey,year:document.querySelector('.year-card strong').textContent}):view==='overview'?overview():view==='attendance'?attendance():view==='celebrations'?celebrationsPage({students,workingClass,today:today(),filters:celebrationFilters,esc,i,shortDate}):view==='students'?studentView():view==='files'?filesView():view==='requests'?requestsPage(requestContext())+development.recurringPanel():view==='teachers'?teachersView():view==='grades'?gradesView():view==='care'?careView():view==='management'?development.managementPage():view==='excel'?parity.page():overview();
+  page.innerHTML = !classes.length&&classPages.includes(view)?'<section class="card auth-empty"><h1>Chưa được phân công lớp</h1><p>Liên hệ Admin để được phân công. Sau đó tải lại trang để mở sổ lớp.</p><a class="button button-secondary" href="#home">Về trang chủ</a></section>':view==='reports'?reportsUI.page():view==='classes'?enrollment.page():view==='staff'?management.staffDirectory():view==='administration'?management.page():view==='notifications'?management.notificationsPage():view==='accounts'?auth.accountsPage():view==='start'?startPage({esc,i,workingClass,today,longDate,students:celebrationPeople(),requests:state.requests,sessions:state.sessions,careNotes:state.careNotes,pendingScans:state.pendingScans,offlineCount:offlineAttendance.list().length}):view==='home'?landing({i,esc,students,classNames,session:current(),stats,activities,shortDate,feedback:scanFeedback,classLevelKey,year:document.querySelector('.year-card strong').textContent}):view==='overview'?overview():view==='attendance'?attendance():view==='celebrations'?celebrationsPage({students:celebrationPeople(),workingClass,today:today(),filters:celebrationFilters,esc,i,shortDate}):view==='students'?studentView():view==='files'?filesView():view==='requests'?requestsPage(requestContext())+development.recurringPanel():view==='teachers'?teachersView():view==='grades'?gradesView():view==='care'?careView():view==='management'?development.managementPage():view==='excel'?parity.page():overview();
   management.restoreDrafts();
   if(renderedView!==view){
     if(!document.documentElement.hasAttribute('data-portal-transition')){
@@ -1233,11 +1237,18 @@ function route(name) { if(view===name){render();return;}portalTransition.enter(n
 function routeFromHash() {
   if(!portalTransition.committing)portalTransition.cancel();
   if(!connected)return;
-  const name=location.hash.slice(1)||'start';
-  view=['start','home','overview','attendance','students','celebrations','files','requests','teachers','grades','care','management','excel','accounts','administration','notifications','staff','classes'].includes(name)?name:'start';
+  const [name='start',query='']=(location.hash.slice(1)||'start').split('?');
+  const routeParams=new URLSearchParams(query);
+  view=['start','home','overview','reports','attendance','students','celebrations','files','requests','teachers','grades','care','management','excel','accounts','administration','notifications','staff','classes'].includes(name)?name:'start';
   if(view!=='attendance'){scanCandidate=null;if(scanConfirmation.open)scanConfirmation.close();}
   if(offlineRestored)view='attendance';
   if(!state.isManager&&adminPages.includes(view))view='start';
+  if(view==='requests'){
+    const filter=routeParams.get('filter');
+    if(['all','pending','waiting','due','completed','missed','rejected','cancelled'].includes(filter)){requestFilter=filter;requestTerm='';}
+    const requestedClass=routeParams.get('class');
+    if(requestedClass&&(requestedClass==='all'||classNames.includes(requestedClass))&&!pendingWrites)rememberClass(requestedClass);
+  }
   document.querySelector('.mobile-menu').open=false;
   openNavigationGroup(view);
   if(view==='excel'&&state.isManager&&!parity.ready()){parity.load(classes.find(c=>c.name===workingClass)?.id);}
@@ -1390,7 +1401,7 @@ async function recordCode(raw,obligationDate=null,manual=true){
   scanCandidate=candidate;renderScanConfirmation();
   try{
     const known=students.find(s=>s.id===code);
-    const result=known?{student:known,proxy:session.scope!=='all'&&session.scope!==known.className}:
+    const result=known&&(state.mode!=='cloud'||connectionIssue||offlineRestored||!navigator.onLine)?{student:known,proxy:session.scope!=='all'&&session.scope!==known.className}:
       await api('scan-preview',{sessionId:session.id,code});
     if(scanCandidate!==candidate||candidate.epoch!==authEpoch)return;
     candidate.student=result.student;candidate.proxy=result.proxy;candidate.phase='confirm';
@@ -1463,9 +1474,9 @@ async function closeSession() {
   button.setAttribute('aria-busy','true');
   busyFeedback(document.getElementById('close-error'),'Đang cập nhật các file lớp…');
   return queueWrite(async()=>{
-    try {const result=await api('close',{sessionId});applyServer(result.state);stopCamera();document.getElementById('close-dialog').close();scanFeedback=null;render();celebrateSession(page);}
-    catch(error){document.getElementById('close-error').textContent=error.message+' Các lớp đã lưu giữ kết quả; bấm Xác nhận kết thúc để tiếp tục phần còn lại.';applyServer(await api('bootstrap'));}
-    finally {button.disabled=false;button.removeAttribute('aria-busy');}
+    try {const result=await api('close',{sessionId,...(state.mode==='cloud'?{previewToken:closePreviewToken}:{})});applyServer(result.state);stopCamera();document.getElementById('close-dialog').close();scanFeedback=null;render();celebrateSession(page);}
+    catch(error){document.getElementById('close-error').textContent=error.message+(state.mode==='cloud'?' Bấm Kiểm tra lại trước khi xác nhận.':' Các lớp đã lưu giữ kết quả; bấm Xác nhận kết thúc để tiếp tục phần còn lại.');applyServer(await api('bootstrap'));}
+    finally {button.disabled=state.mode==='cloud';button.removeAttribute('aria-busy');}
   });
 }
 
@@ -1648,15 +1659,19 @@ function openScanChoice(result,code,manual,entryId=null){
   document.getElementById('scan-choice-options').innerHTML='<legend>Chọn một buổi được tính điểm danh</legend>'+result.options.map(o=>`<label class="scan-choice-option"><input type="radio" name="obligationDate" value="${o.date}" required><span>${o.kind==='makeup'?'Lễ bù cho':'Buổi lễ theo lịch'} ${shortDate(o.date)}</span></label>`).join('');
   document.getElementById('scan-choice-dialog').showModal();
 }
+let closePreviewToken='';
 async function previewClose(){
+  closePreviewToken='';
   if(state.mode==='cloud'&&offlineAttendance.status().ready){try{await offlineAttendance.reload();}catch(error){toast(error.message);return;}}
   if(offlineAttendance.pendingFor(current()).length){toast('Còn lượt quét trên thiết bị. Đồng bộ hoặc kiểm tra từng lượt trước khi chốt buổi.');return;}
   const dialog=document.getElementById('close-dialog'),button=document.getElementById('confirm-close');button.disabled=true;
-  document.getElementById('close-error').textContent='Đang kiểm tra đơn và trạng thái…';document.getElementById('close-preview').innerHTML='';dialog.showModal();
+  document.getElementById('close-error').textContent='Đang kiểm tra đơn và trạng thái…';document.getElementById('close-preview').innerHTML='';if(!dialog.open)dialog.showModal();
   try{
-    await mutationQueue;const result=await api('close-preview',{sessionId:current().id});
+    await mutationQueue;const result=await api('close-preview',{sessionId:current().id});closePreviewToken=result.previewToken||'';
     document.getElementById('close-preview').innerHTML=flowSteps('review')+`<p><strong>${result.willMarkAbsent} em chưa điểm danh sẽ được ghi vắng. ${result.waitingMakeup} em chờ lễ bù được giữ lại.</strong></p><dl>${[['Có mặt',result.present],['Nghỉ phép',result.permitted],['Chờ lễ bù',result.waitingMakeup],['Sẽ ghi vắng',result.willMarkAbsent],['Lễ bù đến hạn chưa quét',result.makeupsWillMiss]].map(([label,value])=>`<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>`;
-    const pending=result.pendingRequests.length;document.getElementById('close-error').textContent=pending?`${pending} mục chưa duyệt. Xử lý trước khi chốt.`:'';
+    const roster=(title,rows)=>`<details open><summary>${title} (${rows.length})</summary><ul>${rows.map(p=>`<li>${esc([p.saintName,p.fullName||p.name||p.code].filter(Boolean).join(' '))} · ${esc(p.className||'')} · ${esc(p.id||p.code)}</li>`).join('')||'<li>Không có.</li>'}</ul></details>`;
+    document.getElementById('close-preview').insertAdjacentHTML('beforeend',roster('Các em sẽ được ghi vắng',result.willMarkAbsentStudents||[])+roster('Giữ chờ lễ bù',result.waitingMakeupStudents||[])+roster('Đơn chưa duyệt',result.pendingRequests||[])+roster('Quét hộ chờ xử lý',result.pendingScans||[])+(state.mode==='cloud'?'<button type="button" class="button button-secondary" id="refresh-close-preview">Kiểm tra lại</button>':''));
+    const pending=result.pendingRequests.length+(result.pendingScans?.length||0);document.getElementById('close-error').textContent=pending?`${pending} mục chưa duyệt. Xử lý trước khi chốt.`:'';
     document.getElementById('review-before-close').hidden=!pending;button.disabled=!!pending;
   }catch(error){document.getElementById('close-error').textContent=error.message;}
 }
@@ -1697,15 +1712,18 @@ async function cameraToggle() {
 
 function downloadBlob(bytes,filename,type){const url=URL.createObjectURL(new Blob([bytes],{type}));const link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 async function exportFiles(all=false) {
+  const downloadEpoch=authEpoch;
   const session=current(),choice=all?'all':document.getElementById('export-class').value;
   const classId=choice==='all'?'all':classes.find(c=>c.name===choice).id;
+  if(state.mode==='cloud'){if(classId==='all'?!state.isManager:!privacyUI.allowed('privateExport',classId)){toast('Bạn chưa được cấp quyền tải hồ sơ trong phạm vi này.');return;}if(!await privacyUI.confirmExport())return;}
   const form=document.getElementById('export-form'),message=document.getElementById('export-message');
   form.setAttribute('aria-busy','true');form.querySelectorAll('button').forEach(b=>b.disabled=true);message.textContent='Đang lấy file Excel đã lưu…';
   try {
     await mutationQueue;
     const endpoint=state.mode==='cloud'&&classId==='all'?'export-manifest':'export';
     const response=await fetch(`/api/${endpoint}?sessionId=${encodeURIComponent(session.id)}&classId=${encodeURIComponent(classId)}`,{cache:'no-store'});
-    const filename=await downloadResponse(response,'DiemDanh.xlsm',downloadBlob,text=>message.textContent=text);
+    const filename=await downloadResponse(response,'DiemDanh.xlsm',downloadBlob,text=>message.textContent=text,()=>downloadEpoch===authEpoch);
+    if(downloadEpoch!==authEpoch)return;
     state.downloads.push({filename,scope:choice,date:session.date,timestamp:new Date().toISOString()});save();render();
     const result=document.getElementById('export-message');if(result)result.textContent='Đã tải file lớp. Các macro VBA được giữ nguyên.';
   }catch(error){message.textContent=error.message||'Chưa tải được file. Hãy kết nối lại dịch vụ Excel.';}
@@ -1718,7 +1736,7 @@ document.addEventListener('click',event=>{
   if(target.matches('a[href^="#"]')&&!target.hasAttribute('data-home-scroll')&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey&&event.button===0&&!target.hasAttribute('download')&&(!target.target||target.target==='_self')){
     const destination=target.getAttribute('href').slice(1);
     if(offlineRestored&&destination!=='attendance'){event.preventDefault();toast('Đang mất mạng. Tiếp tục điểm danh trong buổi đã lưu; các trang khác cần kết nối lại.');return;}
-    if(['start','home','overview','attendance','students','celebrations','files','requests','teachers','grades','care','management','excel','accounts','administration','notifications','staff','classes'].includes(destination)){
+    if(['start','home','overview','reports','attendance','students','celebrations','files','requests','teachers','grades','care','management','excel','accounts','administration','notifications','staff','classes'].includes(destination.split('?')[0])){
       event.preventDefault();if(destination!==view)portalTransition.enter(destination);else document.querySelector('.mobile-menu')?.removeAttribute('open');return;
     }
   }
@@ -1773,6 +1791,7 @@ document.addEventListener('click',event=>{
   else if(target.id==='camera-toggle')cameraToggle();
   else if(target.id==='close-session')previewClose();
   else if(target.id==='confirm-close')closeSession();
+  else if(target.id==='refresh-close-preview')previewClose();
   else if(target.id==='export-all')exportFiles(true);
   else if(target.dataset.openProfile)openProfile(target.dataset.openProfile);
   else if(target.dataset.editTeachers)openTeachersDialog(target.dataset.editTeachers);
@@ -1831,7 +1850,11 @@ document.addEventListener('change',event=>{
   else if(event.target.id==='qr-image'){const file=event.target.files[0];event.target.value='';readQrImage(file);}
   else if(event.target.dataset.stateId){openCorrection(event.target.dataset.stateId,event.target.value);}
   else if(event.target.closest('#request-form'))requestFormHelp();
-  else if(event.target.id==='request-filter'){requestFilter=event.target.value;refreshRequests();}
+  else if(event.target.id==='request-filter'){
+    requestFilter=event.target.value;refreshRequests();
+    const params=new URLSearchParams({filter:requestFilter});if(workingClass)params.set('class',workingClass);
+    history.replaceState(null,'','#requests?'+params);
+  }
   else if(event.target.closest('#session-form') && event.target.matches('select'))calendarHelp();
   else if(event.target.id==='attendance-class'){attendanceClass=event.target.value;refreshAttendanceRows();}
   else if(event.target.id==='attendance-status'){attendanceStatus=event.target.value;refreshAttendanceRows();}
@@ -1878,9 +1901,11 @@ document.addEventListener('invalid',event=>{
   }
   if(event.target.id==='correction-attended-time'){event.target.setAttribute('aria-invalid','true');document.getElementById('correction-error').textContent='Nhập giờ đi lễ thực tế từ 06:00 đến 06:20.';}
 },true);
+const privacyUI=createPrivacyUI({api,esc,state:()=>state,classes:()=>classes,applyServer,render,toast});
+const reportsUI=createReportsUI({api,esc,state:()=>state});
 const auth=createAuthUI({api,esc,page,state:()=>state,classes:()=>classes,render,toast,queueWrite,applyServer,onAccountsChanged:()=>management.clear(),pending:()=>pendingWrites,restoreOffline:()=>offlineAttendance.restore(),
   onClear:()=>{
-    offlineRestored=false;offlineAttendance.clearSession();
+    offlineRestored=false;offlineAttendance.clearSession();privacyUI.clear();reportsUI.clear();profileLoadId++;
     portalTransition.cancel();
     authEpoch++;parity.clear();development.clear();management.clear();enrollment.clear();
     connected=false;stopCamera();clearTimeout(reconnectTimer);reconnectTimer=null;connectionIssue=null;
@@ -1909,10 +1934,10 @@ const auth=createAuthUI({api,esc,page,state:()=>state,classes:()=>classes,render
   }
 });
 const portalTransition=createPortalTransition({
-  canEnter:destination=>connected&&view!==destination&&document.body.dataset.auth==='in'&&(!offlineRestored||destination==='attendance')&&(state.isManager||!adminPages.includes(destination)),
+  canEnter:destination=>connected&&view!==destination&&document.body.dataset.auth==='in'&&(!offlineRestored||destination==='attendance')&&(state.isManager||!adminPages.includes(destination.split('?')[0])),
   mode:destination=>view==='home'||destination==='home'?'portal':'navigation',
   navigate:destination=>{history.pushState(null,'','#'+destination);routeFromHash();},
-  onArrive:destination=>{if(view===destination){const heading=page.querySelector('h1')||page;heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}}
+  onArrive:destination=>{if(view===destination.split('?')[0]){const heading=page.querySelector('h1')||page;heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}}
 });
 window.addEventListener('hashchange',routeFromHash);
 window.addEventListener('pagehide',stopCamera);

@@ -142,7 +142,6 @@ body .student-row-actions>.button { width:100%; min-width:0; max-width:100%; hei
 .account-assignment-fields legend { font-weight:700; padding-inline:var(--space-xs); }
 .account-assignment-row { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:var(--space-sm); padding-block:var(--space-sm); }
 .account-assignment-row>.field { min-width:0; margin:0; }
-.account-assignment-row>.button { grid-column:1/-1; justify-self:end; }
 .account-assignment-fields>.button { width:100%; margin-block:var(--space-sm); }
 .account-assignment-fields .field-help { white-space:normal; }
 #open-account-assignments { width:100%; }

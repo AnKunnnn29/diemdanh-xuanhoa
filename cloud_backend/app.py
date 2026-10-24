@@ -61,15 +61,20 @@ def create_app(service=None, origins=None, *, testing=False):
     @app.middleware('http')
     async def headers(request, call_next):
         response = await call_next(request)
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Permissions-Policy'] = 'camera=(self), microphone=(), geolocation=()'
+        response.headers['Content-Security-Policy'] = "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
+        response.headers['Content-Security-Policy-Report-Only'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; worker-src 'self' blob:; media-src 'self' blob:; form-action 'self'"
         if request.url.path.startswith('/api/'):
             response.headers['Cache-Control'] = 'no-store'
             response.headers['X-Content-Type-Options'] = 'nosniff'
-            response.headers['Referrer-Policy'] = 'same-origin'
+            response.headers['Referrer-Policy'] = 'no-referrer'
         return response
 
     @app.exception_handler(CloudError)
     async def known_error(request, error):
-        return JSONResponse({'error': str(error), 'code': error.code}, status_code=error.status)
+        return JSONResponse({'error': str(error), 'code': error.code}, status_code=error.status,
+            headers={'Retry-After': str(error.retry_after)} if hasattr(error, 'retry_after') else None)
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error(request, error):
@@ -92,7 +97,7 @@ def create_app(service=None, origins=None, *, testing=False):
 
     @app.get('/api/{action:path}')
     def read(action: str, request: Request):
-        result = backend().get(action, request.cookies.get(COOKIE, ''), dict(request.query_params))
+        result = backend().get(action, request.cookies.get(COOKIE, ''), dict(request.query_params), client_address(request))
         if isinstance(result, Download):
             if len(result.content) > 4_000_000:
                 raise CloudError('File quá lớn để tải một lượt. Dùng tải từng phần.', 413, 'download_too_large')
@@ -126,13 +131,13 @@ def create_app(service=None, origins=None, *, testing=False):
         if action == 'auth/login':
             result = await run_in_threadpool(instance.login, values, client_address(request))
         else:
-            result = await run_in_threadpool(instance.post, action, token, csrf, values)
+            result = await run_in_threadpool(instance.post, action, token, csrf, values, client_address(request))
         result = dict(result)
         # Preview tokens are optimistic-concurrency fingerprints, not sessions.
         new_token = result.pop('token', None) if action in ('auth/login','auth/password') else None
         response = JSONResponse(result)
         if new_token is not None:
-            response.set_cookie(COOKIE, new_token, max_age=43200, path='/', secure=not testing,
+            response.set_cookie(COOKIE, new_token, max_age=28800, path='/', secure=not testing,
                                 httponly=True, samesite='strict')
         elif action == 'auth/logout':
             response.delete_cookie(COOKIE, path='/', secure=not testing, httponly=True, samesite='strict')

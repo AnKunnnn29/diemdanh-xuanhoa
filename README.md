@@ -1,5 +1,9 @@
 # Điểm danh Giáo Xứ Xuân Hoà
 
+Mã nguồn ngày 25/10/2026 bổ sung tải hồ sơ theo lớp GLV phụ trách, bộ lọc dữ liệu trong file Excel, báo cáo và các cải tiến bảo mật/UX. Xem [ghi chú phiên bản](RELEASE-2026-10-25.md).
+
+GLV được tải riêng từng lớp đang phụ trách và cần xác thực gần đây. Ghi chú trong file lấy từ ghi chú đã lưu riêng cho lớp trên ứng dụng. Bản ZIP backup rõ không còn tải từ web; sao lưu mã hóa dùng công cụ vận hành riêng. Các hướng dẫn ZIP cũ bên dưới được thay thế bằng chính sách này.
+
 ## Phạm vi mã nguồn trên GitHub
 
 Kho này chứa mã nguồn frontend, backend cloud, cầu nối Excel, script vận hành, tài nguyên giao diện và tài liệu của dự án. Theo yêu cầu, không đưa bộ test vào kho này. Các lệnh npm dành riêng cho test cũng được bỏ khỏi bản công khai.

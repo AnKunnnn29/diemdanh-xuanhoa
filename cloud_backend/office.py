@@ -380,25 +380,37 @@ class Office(BackupRules, YearRules, PlanningRules, Workflow):
         return {'saved':True, 'staff':self.staff()}
 
     def audit_read(self, query, export=False):
-        rows = [dict(r) for r in self.connection.execute(select(m.audit, m.users.c.display_name, m.users.c.username)
-            .outerjoin(m.users, m.users.c.id == m.audit.c.user_id).order_by(m.audit.c.stamp.desc(),m.audit.c.id.desc())).mappings()]
-        for name in ('from','to'):
+        from .security import audit_details
+        from sqlalchemy import or_
+        filters = []
+        for name in ('from', 'to'):
             if query.get(name):
                 date.fromisoformat(query[name])
-        def matches(r):
-            return (not query.get('from') or r['stamp'][:10] >= query['from']) and \
-                (not query.get('to') or r['stamp'][:10] <= query['to']) and \
-                (not query.get('actor') or r['user_id'] == query['actor']) and \
-                (not query.get('action') or query['action'].casefold() in r['action'].casefold()) and \
-                (not query.get('search') or normalize_vi(query['search']) in normalize_vi(json.dumps(r,ensure_ascii=False)))
-        filtered = [r for r in rows if matches(r)]
+        if query.get('from'):
+            filters.append(m.audit.c.stamp >= query['from'])
+        if query.get('to'):
+            filters.append(m.audit.c.stamp < query['to']+'T99')
+        if query.get('actor'):
+            filters.append(m.audit.c.user_id == query['actor'])
+        if query.get('action'):
+            filters.append(func.lower(m.audit.c.action).contains(query['action'].casefold(), autoescape=True))
+        if query.get('search'):
+            term = query['search'].casefold()
+            filters.append(or_(*[func.lower(column).contains(term, autoescape=True)
+                for column in (m.audit.c.action, m.users.c.username, m.users.c.display_name)]))
+        joined = m.audit.outerjoin(m.users, m.users.c.id == m.audit.c.user_id)
+        total = self.connection.execute(select(func.count()).select_from(joined).where(*filters)).scalar_one()
         offset = max(0, int(query.get('offset') or 0))
+        if export and total > 10000:
+            raise CloudError('Lọc nhật ký xuống dưới 10.000 dòng trước khi xuất.')
+        statement = select(m.audit, m.users.c.display_name, m.users.c.username).select_from(joined).where(*filters).order_by(m.audit.c.stamp.desc(), m.audit.c.id.desc())
+        rows = [dict(row) for row in self.connection.execute(statement.limit(10000 if export else 100).offset(0 if export else offset)).mappings()]
+        for row in rows:
+            row['details'] = audit_details(row['details'])
         if export:
-            if len(filtered) > 10000:
-                raise CloudError('Lọc nhật ký xuống dưới 10.000 dòng trước khi xuất.')
             return csv_file([['Thời gian UTC','Người thực hiện','Tên đăng nhập','Thao tác','Chi tiết']]+
-                [[r['stamp'],r['display_name'] or 'Hệ thống',r['username'] or '',r['action'],json.dumps(r['details'],ensure_ascii=False)] for r in filtered], 'Nhat-ky-he-thong.csv')
-        return {'items':filtered[offset:offset+100], 'total':len(filtered), 'offset':offset, 'limit':100,
+                [[r['stamp'],r['display_name'] or 'Hệ thống',r['username'] or '',r['action'],json.dumps(r['details'],ensure_ascii=False)] for r in rows], 'Nhat-ky-he-thong.csv')
+        return {'items':rows, 'total':total, 'offset':offset, 'limit':100,
             'actors':self.service.account_list(self.connection)}
 
     def notifications(self, values=None, preferences=False):

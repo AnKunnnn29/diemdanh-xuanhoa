@@ -15,9 +15,10 @@ from .workbooks import Workbook
 from .office import Office
 from .persistence import document, save_document, fingerprint
 from .account_naming import choose_username
+from . import privacy
 
-SESSION_SECONDS = 43200
-IDLE_SECONDS = 3600
+SESSION_SECONDS = 28800
+IDLE_SECONDS = 1800
 SLOTS = ('glv1', 'glv2', 'glv3', 'souer')
 COMPLETED = ('accounts', 'class-directory', 'student-profile', 'teacher-assignments',
              'attendance-and-makeup', 'grades-and-workbook-export', 'class-and-import-management',
@@ -42,6 +43,33 @@ class Service:
     def audit(self, db, actor, action, details):
         db.execute(insert(m.audit).values(id=secrets.token_hex(16), user_id=actor,
                    action=action, stamp=stamp(), details=audit_details(details)))
+
+    def preflight(self, action, token, address, *, csrf=None):
+        with self.database.transaction(readonly=True) as db:
+            user, _ = self.principal(db, token, csrf, allow_change=action in ('auth/me', 'auth/logout', 'auth/password'), touch=False)
+        from .traffic import limit
+        limit(self.database, self.secret, action, user['id'], token_hash(token), address)
+        return user
+
+    def denied(self, user, action, error, target=None):
+        # Separate transaction: a rejected business transaction must not erase it.
+        if error.status not in (403, 429):
+            return
+        with self.database.transaction(serialized=False) as db:
+            self.audit(db, user['id'] if user else None, 'access-denied',
+                       {'operation': action[:100], 'result': error.code,
+                        'targetRef': hmac.new(self.secret.encode(), str(target or '').encode(), hashlib.sha256).hexdigest()})
+
+    def require_recent_auth(self, db, token):
+        expires = db.execute(select(m.settings.c.value).where(m.settings.c.key == 'reauth:'+token_hash(token))).scalar_one_or_none()
+        if not isinstance(expires, (int, float)) or expires <= time.time():
+            raise CloudError('Nhập lại mật khẩu trước khi tải hồ sơ riêng.', 403, 'reauth_required')
+
+    def student_row(self, db, user, code):
+        row = one(db, select(m.students).where(m.students.c.year_id == self.year(db)['id'], m.students.c.code == str(code or '').strip().upper()))
+        if not row or row['class_id'] not in self.public_user(db, user)['classIds']:
+            raise CloudError('Không có quyền truy cập hồ sơ này.', 403, 'forbidden')
+        return row
 
     def readiness(self, db):
         years = list(db.execute(select(m.years.c.id).where(m.years.c.active.is_(True))).scalars())
@@ -72,7 +100,8 @@ class Service:
             ids = list(db.execute(select(m.assignments.c.class_id).where(
                 m.assignments.c.year_id == year['id'], m.assignments.c.user_id == user['id']).distinct()).scalars())
         return {'id': user['id'], 'username': user['username'], 'displayName': user['display_name'],
-                'role': user['role'], 'active': user['active'], 'mustChangePassword': user['must_change'], 'classIds': ids}
+                'role': user['role'], 'active': user['active'], 'mustChangePassword': user['must_change'], 'classIds': ids,
+                'proxyClassIds': ids}
 
     def principal(self, db, token, csrf=None, *, allow_change=False, touch=True):
         session = one(db, select(m.sessions).where(m.sessions.c.token_hash == token_hash(token)))
@@ -96,6 +125,9 @@ class Service:
         db.execute(delete(m.sessions).where(m.sessions.c.expires <= now))
         db.execute(insert(m.sessions).values(token_hash=token_hash(token), user_id=user['id'], csrf=csrf,
                    expires=now+SESSION_SECONDS, last_seen=now))
+        db.execute(delete(m.settings).where(m.settings.c.key.like('reauth:%'),
+                   ~m.settings.c.key.in_(select('reauth:'+m.sessions.c.token_hash))))
+        db.execute(insert(m.settings).values(key='reauth:'+token_hash(token), value=now+300))
         return {'token': token, 'csrfToken': csrf, 'user': self.public_user(db, user)}
 
     def login(self, values, address):
@@ -109,9 +141,9 @@ class Service:
         error = None
         with self.database.transaction() as db:
             now = time.time()
-            for key in keys:
+            for index, key in enumerate(keys):
                 limit = one(db, select(m.limits).where(m.limits.c.key == key))
-                if limit and now-limit['window_start'] < 900 and limit['attempts'] >= 8:
+                if limit and now-limit['window_start'] < 900 and limit['attempts'] >= (80 if index == 0 else 8):
                     raise CloudError('Đã thử quá nhiều lần. Thử lại sau 15 phút.', 429, 'rate_limited')
                 if not limit or now-limit['window_start'] >= 900:
                     db.execute(delete(m.limits).where(m.limits.c.key == key))
@@ -124,8 +156,9 @@ class Service:
                 for key in keys:
                     db.execute(update(m.limits).where(m.limits.c.key == key).values(attempts=m.limits.c.attempts+1))
                 error = CloudError('Tên đăng nhập hoặc mật khẩu không đúng.', 401, 'invalid_credentials')
+                self.audit(db, None, 'login-failed', {'sourceRef': keys[0], 'accountRef': keys[1]})
             else:
-                db.execute(delete(m.limits).where(m.limits.c.key.in_(keys)))
+                db.execute(delete(m.limits).where(m.limits.c.key == keys[1]))
                 result = self.issue(db, user)
                 self.audit(db, user['id'], 'login', {})
         # Failed attempts must commit before returning the error.
@@ -160,8 +193,12 @@ class Service:
         for row in db.execute(select(m.assignments).where(m.assignments.c.year_id == year['id'])).mappings():
             assigned.setdefault(row['user_id'], set()).add(row['class_id'])
             slots.setdefault(row['user_id'], []).append({'class_id':row['class_id'],'slot':row['slot']})
+        def access_for(row):
+            ids = sorted(all_ids if row['role'] == 'Admin' else assigned.get(row['id'], ()))
+            return {key: ids for key in privacy.CAPABILITIES}
         return [{'id':row['id'],'username':row['username'],'displayName':row['display_name'],'role':row['role'],
                  'active':row['active'],'mustChangePassword':row['must_change'],'revision':row['revision'],
+                 'access': access_for(row),
                  'classIds':all_ids if row['role']=='Admin' else sorted(assigned.get(row['id'],())),
                  'assignments':sorted(slots.get(row['id'],[]),key=lambda a:(a['class_id'],a['slot'])),
                  'assignmentRevision':fingerprint(sorted(slots.get(row['id'],[]),key=lambda a:(a['class_id'],a['slot'])))}
@@ -173,13 +210,11 @@ class Service:
         ids = principal['classIds']
         people, groups = [], []
         for row in db.execute(select(m.students).where(m.students.c.year_id == year['id'], m.students.c.class_id.in_(ids))).mappings():
-            people.append({**row['payload'], 'id': row['code'], 'classId': row['class_id'], 'revision': row['revision']})
+            people.append(privacy.directory({**row['payload'], 'id': row['code'], 'classId': row['class_id']}))
         for row in db.execute(select(m.classes).where(m.classes.c.year_id == year['id'], m.classes.c.id.in_(ids))).mappings():
             groups.append({**row['payload'], 'id': row['id'], 'name': row['name'], 'archived': row['archived'],
                            'count': sum(s['classId'] == row['id'] for s in people)})
         class_names = {row['id']: row['name'] for row in groups}
-        for person in people:
-            person['className'] = class_names[person['classId']]
         codes = {s['id'] for s in people}
         marks = {f"{r['day']}|{r['activity']}|{r['code']}": {'status': r['status'], 'timestamp': r['stamp'], 'source': r['source']}
                  for r in db.execute(select(m.marks).where(m.marks.c.year_id == year['id'], m.marks.c.code.in_(codes))).mappings()}
@@ -194,18 +229,72 @@ class Service:
             operational = workflow.public(principal)
         finally:
             workflow.shutdown()
-        return {'year': year['label'], 'classes': groups, 'students': people, 'marks': marks,
+        attendance_rules = {r['code']: {'enrolledFrom': r['payload'].get('enrolledFrom')}
+            for r in db.execute(select(m.students).where(m.students.c.year_id == year['id'], m.students.c.class_id.in_(ids))).mappings()}
+        from .insights import celebration_roster
+        return {'privacyVersion': 2, 'access': privacy.grants(db, year['id'], principal),
+                'attendanceRules': attendance_rules, 'celebrations': celebration_roster(db, year['id'], ids),
+                'year': year['label'], 'classes': groups, 'students': people, 'marks': marks,
                 'user': principal, 'yearId': year['id'], 'accounts': self.account_list(db) if user['role'] == 'Admin' else [],
                 'isManager': user['role'] == 'Admin', 'connected': True, 'mode': 'cloud', 'gradeMode': 'portable',
                 **operational, 'downloads': [],
                 'cloudReadiness': self.readiness(db)}
 
-    def get(self, action, token, query=None):
+    def get(self, action, token, query=None, address='local'):
+        user = None
+        try:
+            user = self.preflight(action, token, address)
+            result = self._get(action, token, query)
+            from .persistence import Download
+            if action in ('export', 'grade-export', 'grade-pending-export', 'year-file', 'year-export',
+                          'export-manifest', 'reports/attendance-export', 'admin/audit-export'):
+                with self.database.transaction(serialized=False) as log:
+                    self.audit(log, user['id'], 'private-export' if action != 'reports/attendance-export' else 'aggregate-export',
+                        {'operation': action, 'classId': (query or {}).get('classId'),
+                         'bytes': len(result.content) if isinstance(result, Download) else 0})
+            return result if action in ('student-detail', 'admin/staff') else privacy.public_result(result)
+        except CloudError as error:
+            self.denied(user, action, error, (query or {}).get('code'))
+            raise
+
+    def _get(self, action, token, query=None):
         # Computing/exporting a workbook may take longer than attendance. Use a
         # consistent read snapshot without holding the shared mutation lock.
         readonly = action not in ('bootstrap','auth/me')
         with self.database.transaction(readonly=readonly) as db:
-            user, session = self.principal(db, token, allow_change=action == 'auth/me',touch=not readonly)
+            user, session = self.principal(db, token, allow_change=action == 'auth/me',touch=False)
+            query = query or {}
+            if action == 'students':
+                principal = self.public_user(db, user)
+                ids = principal['classIds']
+                cid = query.get('classId')
+                if cid and cid not in ids:
+                    raise CloudError('Lớp ngoài phạm vi được phân công.', 403, 'forbidden')
+                try:
+                    size = int(query.get('limit', 50))
+                    if not 1 <= size <= 100:
+                        raise ValueError()
+                except (ValueError, TypeError):
+                    raise CloudError('Số lượng mỗi trang phải từ 1 đến 100.', 400)
+                statement = select(m.students).where(m.students.c.year_id == self.year(db)['id'],
+                    m.students.c.class_id.in_([cid] if cid else ids))
+                if query.get('cursor'):
+                    statement = statement.where(m.students.c.code > query['cursor'])
+                rows = list(db.execute(statement.order_by(m.students.c.code).limit(size+1)).mappings())
+                return {'items': [privacy.directory({**r['payload'], 'id': r['code'], 'classId': r['class_id']}) for r in rows[:size]],
+                    'nextCursor': rows[size-1]['code'] if len(rows) > size else None}
+            if action == 'student-detail':
+                row = self.student_row(db, user, query.get('code'))
+                return {'student': privacy.detail({**row['payload'], 'id': row['code'], 'classId': row['class_id'],
+                    'revision': row['revision']}), 'access': privacy.grants(db, self.year(db)['id'], self.public_user(db, user))}
+            if action == 'reports/attendance':
+                from .insights import attendance_report
+                return attendance_report(self, db, user, query)
+            if action == 'reports/attendance-export':
+                from .insights import report_csv, attendance_report
+                return report_csv(attendance_report(self, db, user, query))
+            if action in ('snapshot-export', 'snapshot-part'):
+                raise CloudError('Bản sao đầy đủ được xuất mã hóa bằng công cụ backup riêng.', 410, 'encrypted_backup_required')
             if action == 'auth/me':
                 return {'user': self.public_user(db, user), 'csrfToken': session['csrf']}
             if action == 'bootstrap':
@@ -227,6 +316,9 @@ class Service:
                     raise CloudError('Tải toàn bộ sổ trên cloud cần tải từng lớp rồi ghép ZIP.', 409, 'download_manifest_required')
                 if cid not in ids:
                     raise CloudError('Lớp ngoài phạm vi được phân công.', 403, 'forbidden')
+                if action != 'grades':
+                    privacy.require(db, self.year(db)['id'], self.public_user(db, user), 'privateExport', cid)
+                    self.require_recent_auth(db, token)
                 book = Workbook(db, self.year(db)['id'], cid)
                 if action == 'grades':
                     try:
@@ -234,7 +326,8 @@ class Service:
                     except (TypeError, ValueError):
                         raise CloudError('Học kỳ không hợp lệ.')
                     return book.response(semester)
-                return book.export()
+                result = book.export()
+                return result
             if action == 'qr':
                 import qrcode
                 from qrcode.image.svg import SvgPathImage
@@ -245,6 +338,9 @@ class Service:
                     raise CloudError('Thiếu nhi ngoài lớp được phân công.',403,'forbidden')
                 return Download(qrcode.make(code,image_factory=SvgPathImage,border=4).to_string(),'QR-'+code+'.svg','image/svg+xml')
             if action in Office.READ_ACTIONS:
+                if action in ('year-export', 'year-file', 'export-manifest'):
+                    self.admin(user)
+                    self.require_recent_auth(db, token)
                 office = Office(self,db,user)
                 try:
                     return office.read(action,query or {})
@@ -267,7 +363,24 @@ class Service:
                     workflow.shutdown()
             raise CloudError('Chức năng này đang được chuyển sang cloud; chưa thể dùng trên bản thử này.', 503, 'cloud_workflow_pending')
 
-    def post(self, action, token, csrf, values):
+    def post(self, action, token, csrf, values, address='local'):
+        user = None
+        try:
+            user = self.preflight(action, token, address, csrf=csrf)
+            result = self._post(action, token, csrf, values)
+            if action == 'student-contact-view':
+                return result
+            safe = privacy.public_result(result)
+            if action == 'student-profile':
+                safe['student'] = result['student']  # Already positively projected, one authorized profile.
+            if action == 'admin/staff-save':
+                safe['staff'] = result['staff']  # Admin-only staff API; not a student projection.
+            return safe
+        except CloudError as error:
+            self.denied(user, action, error, values.get('code'))
+            raise
+
+    def _post(self, action, token, csrf, values):
         if action == 'auth/password':
             return self.change_password(token, csrf, values)
         with self.database.transaction() as db:
@@ -275,9 +388,40 @@ class Service:
             if action == 'auth/logout':
                 db.execute(delete(m.sessions).where(m.sessions.c.token_hash == token_hash(token)))
                 return {'loggedOut': True}
+            if action == 'auth/reauth':
+                if not password_matches(values.get('password'), user['password_hash']):
+                    raise CloudError('Mật khẩu chưa đúng.', 403, 'incorrect_password')
+                key = 'reauth:'+token_hash(token)
+                db.execute(delete(m.settings).where(m.settings.c.key == key))
+                db.execute(insert(m.settings).values(key=key, value=time.time()+300))
+                return {'verified': True}
+            if action == 'student-contact-view':
+                row = self.student_row(db, user, values.get('code'))
+                privacy.require(db, row['year_id'], self.public_user(db, user), 'contactRead', row['class_id'])
+                self.audit(db, user['id'], 'contact-viewed', {'code': row['code'], 'classId': row['class_id'],
+                    'yearId': row['year_id'], 'sessionRef': token_hash(token)[:16]})
+                day = stamp()[:10]
+                distinct = db.execute(select(func.count(func.distinct(m.audit.c.details['code'].as_string()))).where(
+                    m.audit.c.user_id == user['id'], m.audit.c.action == 'contact-viewed', m.audit.c.stamp >= day)).scalar_one()
+                if distinct and distinct % 30 == 0:
+                    self.audit(db, user['id'], 'contact-volume-review', {'distinctStudents': distinct, 'day': day})
+                return {'code': row['code'], 'revision': row['revision'],
+                        'contact': {key: row['payload'].get(key, '') for key in privacy.CONTACT_FIELDS}}
             if not self.foundation_preview and not self.readiness(db)['ready']:
                 raise CloudError('Bản cloud chưa sẵn sàng để ghi nghiệp vụ. Chưa lưu thay đổi.', 503, 'cloud_migration_incomplete')
-            if action.startswith('accounts/'):
+            if action == 'reports/groups':
+                self.admin(user)
+                year = self.year(db)['id']
+                known = set(self.public_user(db, user)['classIds'])
+                groups = values.get('groups')
+                if not isinstance(groups, dict) or set(groups)-known or any(not isinstance(v, str) or len(v) > 80 for v in groups.values()):
+                    raise CloudError('Phân khối chưa hợp lệ.')
+                key = 'report-groups:'+year
+                db.execute(delete(m.settings).where(m.settings.c.key == key))
+                db.execute(insert(m.settings).values(key=key, value={k: v.strip() for k,v in groups.items()}))
+                self.audit(db, user['id'], 'report-groups-changed', {'classes': len(groups)})
+                result = {'saved': True}
+            elif action.startswith('accounts/'):
                 result = self.account_write(db, user, action, values)
             elif action == 'offline-scan':
                 from .offline import replay_scan
@@ -296,6 +440,10 @@ class Service:
                 workflow = Workflow(db, self.year(db)['id'])
                 try:
                     result = workflow.execute(self.public_user(db, user), action, values)
+                    if action in ('scan', 'scan-preview'):
+                        self.audit(db, user['id'], 'card-lookup', {'sessionId': values.get('sessionId'),
+                            'targetRef': hmac.new(self.secret.encode(), str(values.get('code') or '').encode(), hashlib.sha256).hexdigest(),
+                            'result': 'accepted'})
                 finally:
                     workflow.shutdown()
                 if not action.endswith('preview'):
@@ -343,6 +491,8 @@ class Service:
         if revision is None or str(revision) != str(row['revision']):
             raise CloudError('Hồ sơ đã thay đổi hoặc chưa có phiên bản. Tải lại hồ sơ trước khi lưu.', 409, 'revision_conflict')
         before = row['payload']
+        if privacy.CONTACT_FIELDS.intersection(values):
+            privacy.require(db, year['id'], self.public_user(db, user), 'contactWrite', row['class_id'])
         profile = dict(before)
         for name, maximum in {'saintName': 100, 'fullName': 150, 'gender': 10, 'parents': 1000,
                              'phone': 500, 'address': 500, 'subParish': 150, 'birthDate': 20, 'baptismDate': 20}.items():
@@ -386,8 +536,10 @@ class Service:
         profile['name'] = ' '.join(filter(None, (profile.get('saintName'), profile['fullName'])))
         db.execute(update(m.students).where(m.students.c.year_id == year['id'], m.students.c.code == code).values(
             payload=profile, revision=row['revision']+1))
-        self.audit(db, user['id'], 'student-profile', {'code': code, 'before': before, 'after': profile})
-        return {'saved': True, 'student': {**profile, 'id': code, 'revision': row['revision']+1}}
+        self.audit(db, user['id'], 'student-profile', {'code': code,
+            'changedFields': sorted(key for key in profile if profile.get(key) != before.get(key)),
+            'revisionBefore': row['revision'], 'revisionAfter': row['revision']+1})
+        return {'saved': True, 'student': privacy.detail({**profile, 'id': code, 'classId': row['class_id'], 'revision': row['revision']+1})}
 
     def teacher_write(self, db, user, values, *, allow_archived=False):
         self.admin(user)
@@ -449,6 +601,8 @@ class Service:
         target = one(db, select(m.users).where(m.users.c.id == values.get('id')))
         if not target or target['deleted_at'] or target['id'] == actor['id'] and action != 'accounts/assignments':
             raise CloudError('Không thể thay đổi tài khoản này qua thao tác quản lý.')
+        if action == 'accounts/access':
+            raise CloudError('Quyền dữ liệu đã theo lớp được phân công của từng tài khoản; không cần cấp riêng.', 410, 'access_grants_retired')
         if action == 'accounts/assignments':
             current = next(a for a in self.account_list(db) if a['id']==target['id'])
             if values.get('assignmentRevision') != current['assignmentRevision'] or type(values.get('expectedRevision')) is not int or values['expectedRevision'] != target['revision']:

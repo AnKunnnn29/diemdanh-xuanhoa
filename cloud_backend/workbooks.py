@@ -16,7 +16,7 @@ from .formula_engine import FormulaEngine, ExcelError
 from .persistence import document, save_document, fingerprint, load_blob, Download
 from .security import CloudError
 from .validation import validate_grades, profile_date
-from .xlsm_package import patch_package, TemplateCell, remove_unused_identity_data
+from .xlsm_package import patch_package, TemplateCell, remove_unused_identity_data, restrict_export_to_template, TEMPLATE_SHEET_TITLES
 from .workflows import Catalog
 
 MIME = 'application/vnd.ms-excel.sheet.macroEnabled.12'
@@ -247,10 +247,14 @@ class Workbook:
                 for col in ('B', 'C', 'D'):
                     self.engine.cell(sheet, f'{col}{row}')
         for (sheet,ref),value in list(self.engine.cells.items()):
-            if (sheet,ref) in self.engine.formulas:
+            if sheet in TEMPLATE_SHEET_TITLES and sheet!='Ghi Chú' and (sheet,ref) in self.engine.formulas:
                 self.engine.cell(sheet,ref)
         caches = {key:value for key,value in self.engine.cache.items()
             if key in self.engine.formulas}
         package = patch_package(self.package, self.inputs, caches)
+        # File xuất chỉ theo mẫu đã kiểm chứng; dữ liệu lớp khác không đi theo file GLV.
+        foreign_people=[person for person in self.catalog.students.values() if person['classId']!=self.class_id]
+        package = restrict_export_to_template(package, [person['id'] for person in foreign_people],
+            trusted_notes=self.notes, foreign_profiles=foreign_people, own_profiles=self.people.values())
         package = remove_unused_identity_data(package, {code:p.get('saintName','') for code,p in self.people.items()},self.class_id)
         return Download(package, self.info['name']+'.xlsm', MIME)

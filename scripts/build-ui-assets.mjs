@@ -6,6 +6,8 @@ import {writeAnimations} from './generate-ui-animations.mjs';
 
 export async function buildUIAssets(root='dist'){
   writeAnimations(path.join(root,'assets/animations'));
+  copyFileSync('src/print-actions.js',path.join(root,'print-actions.js'));
+  copyFileSync('src/print.html',path.join(root,'print.html'));
   // Unpack the supplied dotLottie archives at build time; keep the existing player.
   const animationDir=path.join(root,'assets/animations');
   for(const [source,name] of [['Loader cat.lottie','loading-cat'],['Cat playing animation.lottie','playing-cat'],['success confetti.lottie','success-confetti']]){

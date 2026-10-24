@@ -14,7 +14,9 @@ class CloudError(Exception):
 def audit_details(value):
     """Passwords and authentication material never belong in an audit view."""
     private = {'password','passwordhash','temporarypassword','newpassword','currentpassword',
-               'token','csrftoken','secret','databaseurl','xhdatabaseurl'}
+               'token','csrftoken','secret','databaseurl','xhdatabaseurl',
+               'phone','parents','address','before','after','birthdate','baptismdate',
+               'reason','content','note','filebase64'}
     if isinstance(value,dict):
         return {key:audit_details(item) for key,item in value.items()
                 if str(key).replace('_','').casefold() not in private}

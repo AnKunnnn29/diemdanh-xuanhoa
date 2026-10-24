@@ -1,0 +1,75 @@
+{
+  "recorded_on": "2026-10-24",
+  "scope": "User Codex skills; not application runtime dependencies",
+  "skills": [
+    {
+      "name": "design-taste-frontend",
+      "repository": "https://github.com/Leonxlnx/taste-skill",
+      "commit": "6010f91a9935f1c167dfc500fb1a475681892e6b",
+      "path": "skills/taste-skill",
+      "skill_sha256": "d955dae4ba8ab2d994f4bb06b4bf412a1d9875433a8597939c391f4bae91dd7a",
+      "installation": "Codex skill-installer, pinned GitHub ref"
+    },
+    {
+      "name": "web-design-guidelines",
+      "repository": "https://github.com/vercel-labs/agent-skills",
+      "commit": "063bee94c3f4df8453406c830b0a7df0f2860278",
+      "path": "skills/web-design-guidelines",
+      "skill_sha256": "f4647ca866a3accf763777f83e7682954f0187cd6bea7eea0399796652414e8f",
+      "installation": "Codex skill-installer, pinned GitHub ref"
+    },
+    {
+      "name": "playwright-cli",
+      "repository": "https://github.com/microsoft/playwright-cli",
+      "commit": "b1a5903c5b633b8c9f843ad7b629c2a78437040c",
+      "path": "skills/playwright-cli",
+      "skill_sha256": "9bba755285a4c9ad72a4a41b9c7baef6fb516d329c0b44ed0573715f4479b906",
+      "installation": "Codex skill-installer, pinned GitHub ref"
+    },
+    {
+      "name": "awesome-design-references",
+      "repository": "https://github.com/VoltAgent/awesome-design-md",
+      "commit": "3b605329240ce735b510037cca322f1831fdd7f8",
+      "path": "design-md",
+      "skill_sha256": "427d8c82196b65fc440c75ff69dd7e8da40a9b2b72b1742f8548adab14feab70",
+      "installation": "Locally authored adapter; not an official VoltAgent skill",
+      "references": [
+        {
+          "path": "design-md/linear.app/DESIGN.md",
+          "local": "references/linear-app.md",
+          "sha256": "30bd30e72c48a16e4bdbd010f2d1c85fab657c6fae3cc85389399aab10f9cb5f",
+          "url": "https://raw.githubusercontent.com/VoltAgent/awesome-design-md/3b605329240ce735b510037cca322f1831fdd7f8/design-md/linear.app/DESIGN.md"
+        },
+        {
+          "path": "design-md/notion/DESIGN.md",
+          "local": "references/notion.md",
+          "sha256": "fa9d6e78216d8f3e5d3990709ca2de6bc2e268e945bb94f255fd1bfb15455266",
+          "url": "https://raw.githubusercontent.com/VoltAgent/awesome-design-md/3b605329240ce735b510037cca322f1831fdd7f8/design-md/notion/DESIGN.md"
+        },
+        {
+          "path": "design-md/cal/DESIGN.md",
+          "local": "references/cal.md",
+          "sha256": "8cd21b7d67e94c899843d517f4b426e4fee33d47354a433d6a63ebcf79d5a654",
+          "url": "https://raw.githubusercontent.com/VoltAgent/awesome-design-md/3b605329240ce735b510037cca322f1831fdd7f8/design-md/cal/DESIGN.md"
+        },
+        {
+          "path": "LICENSE",
+          "local": "LICENSE",
+          "sha256": "6d4bdc9a9cf30e7beb593475fdcdbf29f981ea6bd7923f202866145409f87b44",
+          "url": "https://raw.githubusercontent.com/VoltAgent/awesome-design-md/3b605329240ce735b510037cca322f1831fdd7f8/LICENSE"
+        }
+      ]
+    }
+  ],
+  "web_guidelines": {
+    "url": "https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md",
+    "fetch_fresh_for_each_review": true
+  },
+  "browser_verification": {
+    "engine": "Microsoft Edge via bundled Playwright 1.62.1 CLI",
+    "fixture": "tests/serve-cloud-qa.py --full",
+    "origin": "http://127.0.0.1:8892",
+    "artifact_directory": ".local/design-audit",
+    "real_personal_data_used": false
+  }
+}

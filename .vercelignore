@@ -1,5 +1,8 @@
 .git
 .local
+.playwright-cli
+.playwright
+.taste-skill
 .openai
 .hallmark
 .venv

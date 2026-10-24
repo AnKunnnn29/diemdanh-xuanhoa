@@ -32,9 +32,11 @@ sessions = Table('xh_auth_sessions', metadata,
     Column('csrf', String(100), nullable=False), Column('expires', Float, nullable=False), Column('last_seen', Float, nullable=False))
 limits = Table('xh_login_limits', metadata,
     Column('key', String(64), primary_key=True), Column('attempts', Integer, nullable=False), Column('window_start', Float, nullable=False))
+Index('xh_limits_window', limits.c.window_start)
 audit = Table('xh_audit', metadata,
     Column('id', String(64), primary_key=True), Column('user_id', String(64)), Column('action', String(100), nullable=False),
     Column('stamp', String(50), nullable=False), Column('details', JSON, nullable=False))
+Index('xh_audit_actor_action_stamp', audit.c.user_id, audit.c.action, audit.c.stamp)
 staff = Table('xh_staff_profiles', metadata,
     Column('id', String(64), primary_key=True), Column('user_id', ForeignKey('xh_users.id'), unique=True), Column('payload', JSON, nullable=False))
 records = Table('xh_records', metadata,

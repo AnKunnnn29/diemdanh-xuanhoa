@@ -1,3 +1,4 @@
+import {renderPrintWindow} from './print-window.js';
 import {gradeValue} from './grade-summary.js';
 import {csvText} from './care-insights.js';
 import {contactFields,encodeContactFields,parentNames,parentPhones} from './parent-contacts.js';
@@ -89,7 +90,7 @@ export function createExcelParityUI(ctx) {
     downloadBlob(csvText(rows),`NhatKyChamSoc-${details.className}-${today()}.csv`,'text/csv;charset=utf-8');
   }
   async function printReport(kind) {
-    const win=window.open('','_blank');if(!win)throw new Error('Cho phép mở cửa sổ in trên trình duyệt.');win.opener=null;
+    const win=window.open('/print.html','_blank');if(!win)throw new Error('Cho phép mở cửa sổ in trên trình duyệt.');win.opener=null;
     const scoped=people(),range=document.getElementById('parity-report-range').value,month=document.getElementById('parity-report-month').value;
     let title,headers,rows;
     try {
@@ -107,7 +108,8 @@ export function createExcelParityUI(ctx) {
         headers=sem===3?['Mã','Họ tên','HK1','HK2','Giáo Lý','Xếp loại','CC lễ','CC GL','TL tổng hợp','Đánh giá','Tổng','Hạng','Lễ bổ sung']:['Mã','Họ tên',...Array.from({length:20},(_,i)=>'KB'+(i+1)),'KT15','KT1 tiết','Thi Kinh','Thi HK','TB','Xếp loại','Hạng'];
         rows=g.students.map(s=>sem===3?[s.code,s.name,s.diemHk1,s.diemHk2,s.diemGiaoLy,s.xepLoai,s.massScore,s.lessonScore,s.combinedMassScore,s.assessment,s.totalScore,s.yearRank,s.supplementalMass]:[s.code,s.name,...s.khaoBai,s.kt15,s.kt1Tiet,s.thiKinh,s.thiHk,s.tbHk,s.xepLoai,s.xepHang]);
       }
-      win.document.write(`<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>@page{size:A4 landscape;margin:12mm}body{font:14px Arial,sans-serif;color:#111;margin:20px}h1{font-size:22px}table{width:100%;border-collapse:collapse;font-size:${kind==='term'?9:12}px}th,td{border:1px solid #999;padding:5px;overflow-wrap:anywhere;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}button{padding:12px;font:inherit}.wrap{overflow:auto}@media print{button{display:none}body{margin:0}.wrap{overflow:visible}}</style><p>GIÁO XỨ XUÂN HOÀ · ${esc(ctx.year())}</p><h1>${esc(title)}</h1><p>${esc(details.className)} · ${rows.length} em · Xuất ${esc(today())}</p><button id="print">In / Lưu PDF</button><div class="wrap"><table><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${esc(gradeValue(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div></html>`);win.document.close();win.document.getElementById('print').addEventListener('click',()=>win.print());
+      if(kind==='roster'&&ctx.state().mode==='cloud'){headers=['Mã','Họ tên','Lớp'];rows=scoped.map(s=>[s.id,s.name,s.className]);}
+      await renderPrintWindow(win,`<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>@page{size:A4 landscape;margin:12mm}body{font:14px Arial,sans-serif;color:#111;margin:20px}h1{font-size:22px}table{width:100%;border-collapse:collapse;font-size:${kind==='term'?9:12}px}th,td{border:1px solid #999;padding:5px;overflow-wrap:anywhere;text-align:left}thead{display:table-header-group}tr{break-inside:avoid}button{padding:12px;font:inherit}.wrap{overflow:auto}@media print{button{display:none}body{margin:0}.wrap{overflow:visible}}</style><p>GIÁO XỨ XUÂN HOÀ · ${esc(ctx.year())}</p><h1>${esc(title)}</h1><p>${esc(details.className)} · ${rows.length} em · Xuất ${esc(today())}</p><button id="print" disabled>In / Lưu PDF</button><div class="wrap"><table><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${esc(gradeValue(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div></html>`);
     }catch(e){win.close();throw e;}
   }
   document.addEventListener('click',async e=>{

@@ -30,11 +30,13 @@ Công cụ chuyển đổi có xem trước: `python -m cloud_backend.rename_acc
 
 ## Sao lưu và tải sổ
 
-Admin có thể tạo bản sao, tải ZIP và xem trước khôi phục trong **Sao lưu & năm học**. Khôi phục nghiệp vụ giữ mật khẩu hiện tại; khôi phục tài khoản là thao tác riêng. Cả hai yêu cầu xem trước, nhập xác nhận và kết thúc phiên đăng nhập để tải lại quyền/dữ liệu.
+GLV chỉ tải hồ sơ của một lớp đang được phân công trong năm học hiện hành; mỗi lần chọn một lớp. Server kiểm tra phạm vi ở mọi đường tải, kể cả gọi API trực tiếp. Thao tác tải cần xác thực gần đây. Quyền tải không mở rộng khi GLV quét hộ lớp khác; quyền dữ liệu thủ công cũ đã ngừng sử dụng.
 
-Chu kỳ sao lưu tự động kích hoạt ở lần cập nhật dữ liệu tiếp theo khi đến hạn, không phải tác vụ chạy đúng giờ khi không có truy cập. Không cần bật máy cá nhân. Nên tải định kỳ một bản ZIP ra nơi lưu riêng. Bản sao trong cùng database không bảo vệ được trường hợp mất cả project Supabase.
+File lớp giữ dữ liệu học tập/điểm danh và hồ sơ đúng lớp. Ghi Chú được dựng từ ghi chú đã lưu cho lớp trên ứng dụng. Không tự mang vùng ghi chú tự do/attachment chưa kiểm chứng từ sổ nguồn vào bản xuất. File có dấu hiệu dữ liệu ngoài lớp hoặc thành phần không được hỗ trợ bị chặn để Admin kiểm tra.
 
-File lớn được tải qua các phần có xác thực, dưới 4 MB/phần, rồi ghép ZIP trong trình duyệt. Không đưa bản sao lưu vào thư mục công khai hoặc tạo URL file không cần đăng nhập. Giới hạn tệp nhị phân của bản thử nghiệm là 300 MB; cần theo dõi cả dung lượng database, gồm dữ liệu và lịch sử sao lưu.
+Bản sao nằm trong cùng database không bảo vệ được khi mất cả project. API ZIP backup rõ đã ngừng hoạt động. Công cụ `python -m cloud_backend.secure_backup` và runner `deploy/Run-EncryptedBackup.ps1` hỗ trợ mã hóa age, verify và restore vào database trống; cần cấu hình nơi lưu độc lập, runner, lịch, người giữ khóa và diễn tập phục hồi trước khi coi backup đã vận hành.
+
+Không lưu private key cùng archive hoặc trong frontend. Deployment mã nguồn không tự tạo lịch backup, không đổi credential/role database và không kích hoạt năm học.
 
 ## Cấu hình riêng
 

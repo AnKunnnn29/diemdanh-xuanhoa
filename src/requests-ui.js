@@ -1,11 +1,13 @@
 export const requestStates={pending:'Chờ duyệt',approved:'Đã duyệt',completed:'Đã đi lễ',missed:'Vắng lễ bù',rejected:'Không duyệt',cancelled:'Đã huỷ / điều chỉnh'};
 export const makeupDate=r=>r.effective_target_day||r.exception_day||r.target_day;
 
-export function requestTable({state,students,esc,i,shortDate,activities,studentCell,filter,term,searchable}) {
+export function requestTable({state,students,esc,i,shortDate,activities,studentCell,filter,term,searchable,today}) {
  const groups=new Map();
  for(const request of state.requests||[]) {
   const student=students.find(s=>s.id===request.code);if(!student)continue;
-  if(filter!=='all' && !(filter==='waiting'?request.kind==='makeup'&&request.status==='approved':request.status===filter))continue;
+  if(filter==='due'){
+   if(request.kind!=='makeup'||request.status!=='approved'||!makeupDate(request)||makeupDate(request)>today())continue;
+  }else if(filter!=='all' && !(filter==='waiting'?request.kind==='makeup'&&request.status==='approved':request.status===filter))continue;
   if(!searchable(`${student.name} ${student.id} ${student.className}`).includes(searchable(term)))continue;
   if(!groups.has(request.group_id))groups.set(request.group_id,[]);groups.get(request.group_id).push(request);
  }
@@ -23,7 +25,7 @@ export function requestsPage(context) {
  const pending=(state.requests||[]).filter(r=>r.status==='pending').length;
  return `<div class="page-heading"><div><h1>Xin phép & đổi lễ</h1><p>Đổi Thánh lễ trong cùng tuần, từ thứ Hai đến thứ Bảy. Chủ nhật giữ nguyên.</p></div><button class="button button-primary" data-new-request>${i('calendar')}Thêm đơn</button></div>
  <div class="request-facts"><span><strong>${pending}</strong> mục chờ duyệt</span><span><strong>${waiting.length}</strong> em chờ lễ bù</span><span><strong>${overdue.length}</strong> lễ bù quá ngày hẹn</span></div>
- <div class="request-toolbar"><label class="field">Trạng thái<select id="request-filter">${[['all','Tất cả'],['pending','Chờ duyệt'],['waiting','Chờ lễ bù'],['completed','Đã đi lễ bù'],['missed','Vắng lễ bù'],['rejected','Không duyệt'],['cancelled','Đã huỷ / điều chỉnh']].map(([value,label])=>`<option value="${value}" ${value===context.filter?'selected':''}>${label}</option>`).join('')}</select></label><label class="field grow">Tìm học sinh<input id="request-search" type="search" value="${esc(context.term)}" placeholder="Tên, mã hoặc lớp"></label><button class="button button-secondary" id="finish-makeups" ${waiting.filter(r=>makeupDate(r)<=today()).length?'':'disabled'}>Chốt vắng lễ bù đến ${shortDate(today())}</button></div>
+ <div class="request-toolbar"><label class="field">Trạng thái<select id="request-filter">${[['all','Tất cả'],['pending','Chờ duyệt'],['waiting','Chờ lễ bù'],['due','Lễ bù đến hạn'],['completed','Đã đi lễ bù'],['missed','Vắng lễ bù'],['rejected','Không duyệt'],['cancelled','Đã huỷ / điều chỉnh']].map(([value,label])=>`<option value="${value}" ${value===context.filter?'selected':''}>${label}</option>`).join('')}</select></label><label class="field grow">Tìm học sinh<input id="request-search" type="search" value="${esc(context.term)}" placeholder="Tên, mã hoặc lớp"></label><button class="button button-secondary" id="finish-makeups" ${waiting.filter(r=>makeupDate(r)<=today()).length?'':'disabled'}>Chốt vắng lễ bù đến ${shortDate(today())}</button></div>
  <p class="field-help">Điểm danh đúng ngày lễ đã chuyển đến; dấu X được tính cho ngày lễ gốc. Chỉ chốt vắng sau khi buổi lễ thay thế đã kết thúc.</p><p id="requests-message" role="status" aria-live="polite"></p>
  <section class="card"><div class="card-header"><h2>Danh sách đơn</h2></div><div id="requests-rows">${requestTable(context)}</div></section>
  ${state.requestEvents.some(e=>e.action==='corrected'&&!e.request_id)?`<section class="card mt-6"><div class="card-header"><h2>Điều chỉnh điểm danh gần đây</h2></div><ol class="request-history">${state.requestEvents.filter(e=>e.action==='corrected'&&!e.request_id).slice(0,10).map(e=>`<li><strong>${esc(e.actor)}</strong><p>${esc(e.reason)}</p><small>${esc(e.stamp.replace('T',' ').slice(0,19))}</small></li>`).join('')}</ol></section>`:''}`;

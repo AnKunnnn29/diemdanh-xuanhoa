@@ -15,6 +15,8 @@ from types import SimpleNamespace
 from sqlalchemy import select, insert, update, delete
 from . import models as m
 from .security import CloudError
+from .persistence import fingerprint
+from .privacy import identity
 from .workflow_rules import CareRules, ExceptionWorkflow, ACTIVITIES, normalize_vi
 
 LOCAL_TZ = timezone(timedelta(hours=7))
@@ -207,6 +209,10 @@ class Workflow(CareRules, ExceptionWorkflow):
         elif action in ('scan', 'scan-preview', 'mark', 'close', 'close-preview'):
             session = self.session(values.get('sessionId'))
             scope(session['scope'])
+            if action in ('scan', 'scan-preview'):
+                target = self.catalog.students.get(str(values.get('code') or '').strip().strip('*').upper())
+                if target and target['classId'] not in ids and not user.get('proxyClassIds'):
+                    raise CloudError('Không có quyền tra cứu mã thẻ này.', 403, 'forbidden')
             if action == 'scan':
                 raw = str(values.get('code') or '').strip().strip('*')
                 if raw.upper() not in self.catalog.students:
@@ -216,7 +222,7 @@ class Workflow(CareRules, ExceptionWorkflow):
                     matches = [s for s in people if query and query in (normalize_vi(s['fullName']), normalize_vi(s['name']))]
                     matches = matches or [s for s in people if query and any(query in normalize_vi(s[k]) for k in ('fullName', 'name', 'id'))]
                     if not matches:
-                        all_matches = [s for s in self.catalog.students.values() if query and (query in (normalize_vi(s['fullName']), normalize_vi(s['name'])) or any(query in normalize_vi(s[k]) for k in ('fullName', 'name', 'id')))]
+                        all_matches = []  # Never search names outside assigned classes.
                         if len(all_matches) == 1:
                             matches = all_matches
                         elif len(all_matches) > 1:
@@ -335,8 +341,30 @@ class Workflow(CareRules, ExceptionWorkflow):
                 self.request_event(db, None, 'corrected', actor, f'{code}; {session["date"]}; {session["activity"]}; {old or "trống"} → {status or "trống"}; {reason}{detail}')
         return {**result, **early_info, 'student': student, 'state': self.bootstrap()}
 
+    def close_preview(self, values):
+        result = super().close_preview(values)
+        session = self.session(values.get('sessionId'))
+        people = [s for s in self.catalog.eligible(session) if self.student_active(s['id'], session['date'])]
+        result['willMarkAbsentStudents'] = [identity(s) for s in people
+            if not self.status_at(s['id'], session['date'], session['activity'])
+            and not self.awaiting_makeup(s['id'], session['date'], session['activity'])]
+        result['waitingMakeupStudents'] = [identity(s) for s in people
+            if not self.status_at(s['id'], session['date'], session['activity'])
+            and self.awaiting_makeup(s['id'], session['date'], session['activity'])]
+        ids = {s['classId'] for s in people}
+        result['pendingScans'] = [row for row in self.pending_scans(ids)
+            if row['status'] == 'pending' and row['date'] == session['date'] and row['activity'] == session['activity']]
+        result['previewToken'] = fingerprint({'session': session, 'result': result,
+            'marks': self.catalog.marks, 'requests': self.requests()})
+        return result
+
     def close_session(self, values):
         session = self.session(values.get('sessionId'))
+        preview = self.close_preview(values)
+        if values.get('previewToken') != preview['previewToken']:
+            raise CloudError('Buổi đã thay đổi hoặc chưa kiểm tra. Mở lại bước kiểm tra trước khi chốt.', 409, 'revision_conflict')
+        if preview['pendingScans']:
+            raise CloudError('Còn lượt quét hộ chưa xử lý. Duyệt hoặc từ chối trước khi chốt.', 409, 'pending_scans')
         if session['date'] > datetime.now(LOCAL_TZ).date().isoformat():
             raise ValueError('Không chốt vắng trước ngày diễn ra buổi điểm danh.')
         self.catalog.refresh()

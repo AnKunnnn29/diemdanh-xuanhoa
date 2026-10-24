@@ -1,7 +1,7 @@
 export const assignmentSlots=[['glv1','GLV 1'],['glv2','GLV 2'],['glv3','GLV 3'],['souer','Soeur đồng hành']];
 export function assignmentRow({classes,accounts,esc,targetId='',selected={}}){
  const classId=selected.class_id||'',slot=selected.slot||'glv1';
- return `<div class="account-assignment-row"><label class="field">Lớp phụ trách<select data-assignment-class><option value="">Chưa phân công</option>${classes.filter(c=>!c.archived||c.id===classId).map(c=>`<option value="${esc(c.id)}" ${classId===c.id?'selected':''}>${esc(c.name)}${c.archived?' · Đã lưu trữ':''}</option>`).join('')}</select></label><label class="field">Vị trí<select data-assignment-slot>${slotOptions({classId,slot,accounts,esc,targetId})}</select></label><button type="button" class="button button-secondary" data-assignment-remove aria-label="Bỏ lớp khỏi phân công">Bỏ lớp</button></div>`;
+ return `<div class="account-assignment-row"><label class="field">Lớp phụ trách<select data-assignment-class><option value="">Chưa phân công</option>${classes.filter(c=>!c.archived||c.id===classId).map(c=>`<option value="${esc(c.id)}" ${classId===c.id?'selected':''}>${esc(c.name)}${c.archived?' · Đã lưu trữ':''}</option>`).join('')}</select></label><label class="field">Vị trí<select data-assignment-slot>${slotOptions({classId,slot,accounts,esc,targetId})}</select></label></div>`;
 }
 export function slotOptions({classId,slot,accounts,esc,targetId}){
  return assignmentSlots.map(([key,label])=>{
