@@ -4,6 +4,10 @@ import hashlib
 import hmac
 import secrets
 
+# Public dummy salt/digest: unknown usernames still pay the real scrypt cost.
+# A missing user can never authenticate, even if the dummy digest matched.
+DUMMY_PASSWORD_HASH = 'scrypt$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+
 
 class CloudError(Exception):
     def __init__(self, message, status=409, code='invalid_request'):

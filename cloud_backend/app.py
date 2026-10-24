@@ -1,5 +1,6 @@
 """ASGI entrypoint for Vercel. No server threads, timers, or writable disk."""
 import json
+import asyncio
 import logging
 import os
 import ipaddress
@@ -57,6 +58,9 @@ def configured_service():
 
 def create_app(service=None, origins=None, *, testing=False):
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    # scrypt uses ~128 MiB per verification. Queue logins asynchronously so a
+    # burst cannot exhaust memory or occupy all threads needed for attendance.
+    login_slots = asyncio.Semaphore(2)
 
     @app.middleware('http')
     async def headers(request, call_next):
@@ -129,7 +133,8 @@ def create_app(service=None, origins=None, *, testing=False):
         csrf = request.headers.get('x-csrf-token', '')
         instance = backend()
         if action == 'auth/login':
-            result = await run_in_threadpool(instance.login, values, client_address(request))
+            async with login_slots:
+                result = await run_in_threadpool(instance.login, values, client_address(request))
         else:
             result = await run_in_threadpool(instance.post, action, token, csrf, values, client_address(request))
         result = dict(result)

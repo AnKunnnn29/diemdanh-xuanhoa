@@ -227,12 +227,14 @@ def restrict_export_to_template(package, foreign_codes, managed_titles=TEMPLATE_
     foreign=sorted({str(code).strip().upper() for code in foreign_codes if str(code).strip()},key=len,reverse=True)
     codes=re.compile(r'(?<![A-Z0-9])(?:'+'|'.join(re.escape(code) for code in foreign)+r')(?![A-Z0-9])',re.I) if foreign else None
     private_texts,private_phones=_profile_constraints(foreign_profiles,own_profiles)
+    shortest_phone=min((len(phone) for phone in private_phones),default=0)
     def reject(values,title):
         for value in values:
             text=_normalized_text(value)
             if codes and codes.search(unicodedata.normalize('NFKC',str(value))):
                 raise CloudError(f'Sheet mẫu "{title}" chứa mã thiếu nhi ngoài lớp. Admin kiểm lại dữ liệu trước khi xuất.',409,'foreign_data_in_template')
-            if any(item in text for item in private_texts) or any(phone in re.sub(r'\D','',str(value)) for phone in private_phones):
+            digits=re.sub(r'\D','',str(value)) if private_phones else ''
+            if any(item in text for item in private_texts) or (len(digits)>=shortest_phone and any(phone in digits for phone in private_phones)):
                 raise CloudError('Sổ mẫu chứa thông tin ngoài lớp. Admin kiểm lại dữ liệu trước khi xuất.',409,'foreign_data_in_template')
     replacements={};removals=set();stripped_sources=set()
     with zipfile.ZipFile(io.BytesIO(package)) as archive:

@@ -7,9 +7,9 @@ import hmac
 import secrets
 import time
 from datetime import datetime, timezone
-from sqlalchemy import select, insert, update, delete, func
+from sqlalchemy import select, insert, update, delete, func, case
 from . import models as m
-from .security import CloudError, password_hash, password_matches, token_hash, validate_password, audit_details
+from .security import CloudError, password_hash, password_matches, token_hash, validate_password, audit_details, DUMMY_PASSWORD_HASH
 from .workflows import Workflow, OPERATIONS
 from .workbooks import Workbook
 from .office import Office
@@ -38,7 +38,6 @@ class Service:
     def __init__(self, database, secret, *, foundation_preview=False):
         self.database, self.secret = database, secret
         self.foundation_preview = foundation_preview
-        self._dummy = None
 
     def audit(self, db, actor, action, details):
         db.execute(insert(m.audit).values(id=secrets.token_hex(16), user_id=actor,
@@ -135,30 +134,49 @@ class Service:
         password = values.get('password')
         if not username or len(username) > 100 or not isinstance(password, str) or not 1 <= len(password) <= 128:
             raise CloudError('Tên đăng nhập hoặc mật khẩu không đúng.', 401, 'invalid_credentials')
-        # Rate limits live in PostgreSQL, shared by separate Vercel instances.
+        # Reserve attempts atomically before expensive hashing. Pending attempts
+        # count against the budget too: parallel failures cannot bypass it.
         keys = [hmac.new(self.secret.encode(), value.encode(), hashlib.sha256).hexdigest()
                 for value in ('address:'+address, 'username:'+username)]
+        with self.database.transaction(serialized=False) as db:
+            now = time.time()
+            if db.dialect.name == 'postgresql':
+                from sqlalchemy.dialects.postgresql import insert as upsert
+            else:
+                from sqlalchemy.dialects.sqlite import insert as upsert
+            table = m.limits
+            expired = table.c.window_start <= now-900
+            statement = upsert(table).values([
+                {'key': key, 'attempts': 1, 'window_start': now} for key in sorted(keys)])
+            reservations = db.execute(statement.on_conflict_do_update(index_elements=[table.c.key],
+                set_={'attempts': case((expired, 1), else_=table.c.attempts+1),
+                      'window_start': case((expired, now), else_=table.c.window_start)})
+                .returning(table.c.key, table.c.attempts, table.c.window_start)).mappings().all()
+            caps = dict(zip(keys, (80, 8)))
+            blocked = [row for row in reservations if row['attempts'] > caps[row['key']]]
+            if blocked:
+                error = CloudError('Đã thử quá nhiều lần. Thử lại sau 15 phút.', 429, 'rate_limited')
+                error.retry_after = max(1, int(max(row['window_start']+900-now for row in blocked))+1)
+                raise error  # Roll back both reservations together.
+            candidate = one(db, select(m.users).where(m.users.c.username == username))
+
+        # No connection or business lock is held during scrypt.
+        valid = password_matches(password, candidate['password_hash'] if candidate else DUMMY_PASSWORD_HASH)
         error = None
         with self.database.transaction() as db:
-            now = time.time()
-            for index, key in enumerate(keys):
-                limit = one(db, select(m.limits).where(m.limits.c.key == key))
-                if limit and now-limit['window_start'] < 900 and limit['attempts'] >= (80 if index == 0 else 8):
-                    raise CloudError('Đã thử quá nhiều lần. Thử lại sau 15 phút.', 429, 'rate_limited')
-                if not limit or now-limit['window_start'] >= 900:
-                    db.execute(delete(m.limits).where(m.limits.c.key == key))
-                    db.execute(insert(m.limits).values(key=key, attempts=0, window_start=now))
-            user = one(db, select(m.users).where(m.users.c.username == username))
-            if self._dummy is None:
-                self._dummy = password_hash(secrets.token_urlsafe(24))
-            valid = password_matches(password, user['password_hash'] if user else self._dummy)
-            if not valid or not user or not user['active'] or user['deleted_at']:
-                for key in keys:
-                    db.execute(update(m.limits).where(m.limits.c.key == key).values(attempts=m.limits.c.attempts+1))
+            user = one(db, select(m.users).where(m.users.c.id == candidate['id']).with_for_update()) if candidate else None
+            credential_fields = ('id', 'username', 'password_hash', 'revision', 'active', 'deleted_at', 'role', 'must_change')
+            unchanged = user and all(user[key] == candidate[key] for key in credential_fields)
+            if not valid or not unchanged or not user['active'] or user['deleted_at']:
                 error = CloudError('Tên đăng nhập hoặc mật khẩu không đúng.', 401, 'invalid_credentials')
                 self.audit(db, None, 'login-failed', {'sourceRef': keys[0], 'accountRef': keys[1]})
             else:
-                db.execute(delete(m.limits).where(m.limits.c.key == keys[1]))
+                # Refund only this successful attempt, never another in-flight
+                # or failed attempt, and never a replacement time window.
+                for row in sorted(reservations, key=lambda row: row['key']):
+                    db.execute(update(m.limits).where(m.limits.c.key == row['key'],
+                        m.limits.c.window_start == row['window_start'], m.limits.c.attempts > 0)
+                        .values(attempts=m.limits.c.attempts-1))
                 result = self.issue(db, user)
                 self.audit(db, user['id'], 'login', {})
         # Failed attempts must commit before returning the error.
