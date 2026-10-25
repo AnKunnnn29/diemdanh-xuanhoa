@@ -12,7 +12,7 @@ import jsQR from 'jsqr';
 import { landing } from './landing.js';
 import {requestsPage,requestTable,requestDialogs,requestStates,makeupDate} from './requests-ui.js';
 import {attendanceHistory,summarizeAttendance} from './attendance-metrics.js';
-import {groupSessionAttendance,sessionSummaryHtml} from './session-summary.js';
+import {groupSessionAttendance,sessionSummaryHtml,presentClipboardText,copySessionText} from './session-summary.js';
 import {scanAnnouncement,scanBubbleHtml,scanConfirmationHtml} from './scan-notification.js';
 import {createDevelopmentUI} from './development-ui.js';
 import {createManagementUI} from './management-ui.js';
@@ -502,11 +502,37 @@ function pendingScansBanner(session) {
   </section>`;
 }
 
-function sessionSummary(session){
+function sessionAttendanceGroups(session){
   const completed=completedMakeups(session);
-  return sessionSummaryHtml(groupSessionAttendance(sessionPeople(session),{
+  return groupSessionAttendance(sessionPeople(session),{
     markFor:student=>mark(session,student),isWaiting:student=>waitingFor(session,student),isMakeupDone:student=>completed.has(student.id)
-  }),{esc,timeOf});
+  });
+}
+function sessionSummary(session){
+  return sessionSummaryHtml(sessionAttendanceGroups(session),{esc,timeOf,closed:session.closed,
+    context:`${session.scope==='all'?'Tất cả lớp':session.scope} · ${activities[session.activity]} · ${shortDate(session.date)}`});
+}
+async function copyPresent(button){
+  const session=current();if(!session||view!=='attendance'||!auth.user())return;
+  const groups=sessionAttendanceGroups(session),kind=button.dataset.copyPresent;
+  const text=presentClipboardText(groups,kind);if(!text)return;
+  const epoch=authEpoch,identifier=session.id,panel=button.closest('[data-summary-group="present"]');
+  const buttons=[...panel.querySelectorAll('[data-copy-present]')],status=panel.querySelector('[data-summary-copy-status]');
+  const fallback=panel.querySelector('[data-summary-copy-fallback]'),input=panel.querySelector('[data-summary-copy-text]');
+  const isCurrent=()=>epoch===authEpoch&&view==='attendance'&&current()?.id===identifier&&button.isConnected;
+  fallback.hidden=true;input.value='';status.textContent='Đang sao chép…';
+  buttons.forEach(control=>{control.disabled=true;control.setAttribute('aria-busy','true');});
+  try{
+    const copied=await copySessionText(text,{isCurrent});if(!isCurrent())return;
+    if(copied)status.textContent=`Đã sao chép ${text.split('\n').length} ${kind==='codes'?'mã số':'tên Thánh, họ và tên'} của các em có mặt.`;
+    else{
+      status.textContent='Trình duyệt chưa cho phép sao chép tự động. Dùng nội dung bên dưới để sao chép thủ công.';
+      fallback.hidden=false;input.value=text;input.focus({preventScroll:true});input.select();
+    }
+  }finally{
+    buttons.forEach(control=>{if(control.isConnected){control.disabled=false;control.removeAttribute('aria-busy');}});
+    if(isCurrent()&&document.activeElement===document.body)button.focus({preventScroll:true});
+  }
 }
 function attendance() {
   const session = current();
@@ -525,6 +551,7 @@ function attendance() {
   <div class="scanner-grid"><div class="scanner-column"><section class="card" data-scan-panel="camera" ${scanMethod==='camera'?'':'hidden'}><div class="card-header"><h2><span>${i('camera')}</span>Quét QR</h2><button class="button button-primary" id="camera-toggle" ${session.closed?'disabled':''}>${i('camera')}${cameraStream?'Tắt camera':'Bật camera'}</button></div><div class="scanner-surface ${cameraStream?'live':''}" id="scanner-surface"><video id="camera-video" playsinline muted autoplay ${cameraStream?'':'hidden'}></video><div class="scan-frame" aria-hidden="true"></div><h3>Đặt mã QR vào khung hình</h3><p>Cho phép truy cập camera khi bạn muốn bắt đầu quét thẻ.</p></div><div class="camera-controls"><label class="button button-text" for="qr-image">Chọn ảnh QR</label><input id="qr-image" type="file" accept="image/*" class="qr-file-input" aria-label="Chọn ảnh mã QR trên thẻ" ${session.closed?'disabled':''}><button class="button button-text" data-focus-code>${i('keyboard')}Dùng mã thẻ</button></div><p id="camera-error" class="inline-message px-5 pb-4" role="status" hidden></p></section>
   <section class="card" data-scan-panel="text" ${scanMethod==='text'?'':'hidden'}><div class="card-body"><form id="code-form"><div class="manual-input-box"><div class="manual-input-header"><strong>${i('keyboard')}Nhập tay khi quên thẻ / Nhập sau lễ</strong><small>Nhập tên (vd: Lam Anh, Gia Bảo) hoặc mã thẻ (vd: XH22008), rồi nhấn Enter</small></div><div class="input-actions"><label class="field flex-1" for="student-code">Tên hoặc mã thiếu nhi<input id="student-code" name="code" list="student-suggestions" autocomplete="off" spellcheck="false" placeholder="Ví dụ: Lam Anh, Gia Bảo hoặc XH22008..." aria-describedby="scan-feedback code-help" required ${session.closed?'disabled':''}><datalist id="student-suggestions">${sessionPeople(session).map(s=>`<option value="${esc(s.id)}">${esc(s.saintName?s.saintName+' ': '')}${esc(s.fullName)} · ${esc(s.className)} (${esc(s.id)})</option>`).join('')}</datalist></label><button class="button button-primary" type="submit" ${session.closed?'disabled':''}>${i('check')}Ghi nhận</button></div><p class="field-help code-help" id="code-help">💡 Hỗ trợ gõ không dấu. Nếu về nhà nhập sau, hệ thống tự động tìm đúng em và ghi vào Excel.</p></div></form></div></section></div>
   <aside class="scan-side"><section class="card"><div class="card-header"><h2>Kết quả buổi điểm danh</h2>${badge(session.closed?'Đã kết thúc':'Đang mở',session.closed)}</div><div class="card-body"><div class="scan-summary"><div><strong>${st.present}</strong><span>Có mặt</span></div><div><strong>${st.permitted}</strong><span>Nghỉ phép</span></div><div><strong>${st.pending}</strong><span>Chưa ghi nhận</span></div><div><strong>${st.absent}</strong><span>Vắng mặt</span></div></div><p class="field-help">${st.waiting} em chờ lễ bù · ${st.makeupDone} em đã quét lễ bù cho buổi khác · <a href="#requests">Xử lý xin phép / đổi lễ</a></p><div class="progress-label"><span>Đã ghi trạng thái</span><strong>${st.processed} / ${st.total} em</strong></div><div class="progress-track" role="progressbar" aria-label="Tỷ lệ đã ghi trạng thái" aria-valuenow="${st.total?Math.round(st.processed/st.total*100):0}" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill" style="width:${st.total?st.processed/st.total*100:0}%"></div></div><button class="button button-secondary w-full mt-4" data-route="files">${i('download')}Tải sổ lớp</button>${!session.closed?`<button class="button button-text w-full mt-2" id="close-session">Kết thúc điểm danh${i('checkcircle')}</button>`:`<p class="field-help mt-4">Buổi đã chốt. Bạn vẫn có thể xem và tải kết quả.</p>`}</div></section><section class="card"><div class="card-header"><h2>Các buổi đã mở</h2></div><div class="card-body small-session-list">${state.sessions.slice().reverse().map(s=>`<button class="session-choice ${s.id===session.id?'selected':''}" data-open-session="${s.id}"><span>${esc(activities[s.activity])}<small>${shortDate(s.date)} · ${esc(s.scope==='all'?'Tất cả lớp':s.scope)}</small></span>${i(s.closed?'checkcircle':'arrow')}</button>`).join('')}</div></section></aside></div>
+  ${sessionSummary(session)}
   <section class="card attendance-register"><div class="card-header"><h2>Danh sách trong buổi</h2><span id="attendance-count" class="result-count" role="status" aria-live="polite">${attendancePeople(session).length} / ${st.total} em</span></div>
     <div class="register-filters"><label class="field search-field">Tìm thiếu nhi<input id="attendance-search" type="search" placeholder="Tên hoặc mã thẻ" value="${esc(attendanceTerm)}" aria-controls="attendance-rows"></label><label class="field">Lớp<select id="attendance-class" aria-controls="attendance-rows"><option value="all">Tất cả lớp trong buổi</option>${classNames.filter(c=>session.scope==='all'||c===session.scope).map(c=>`<option ${attendanceClass===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label><label class="field">Trạng thái<select id="attendance-status" aria-controls="attendance-rows">${[['all','Tất cả trạng thái'],['pending','Chưa điểm danh'],['X','Có mặt'],['P','Nghỉ phép'],['O','Vắng mặt']].map(([v,t])=>`<option value="${v}" ${attendanceStatus===v?'selected':''}>${t}</option>`).join('')}</select></label></div>
     <div class="register-legend"><span>Em chờ lễ bù chưa bị ghi vắng.</span><button class="button button-text" id="clear-attendance-filters" ${attendanceClass==='all'&&attendanceStatus==='all'&&!attendanceTerm?'disabled':''}>Bỏ bộ lọc</button></div><div id="attendance-rows">${recentRows(session,true)}</div></section>`;
@@ -1753,6 +1780,7 @@ document.addEventListener('click',event=>{
   }
   else if(target.dataset.easyAction){if(target.dataset.easyAction==='attendance')beginSetup(true);else route(target.dataset.easyAction);}
   else if(target.id==='change-attendance-session')beginSetup();
+  else if(target.dataset.copyPresent)copyPresent(target);
   else if(target.id==='grade-show-all'){const fields=document.getElementById('grade-fields');fields.dataset.entry=fields.dataset.entry==='full'?'single':'full';refreshGradeEditor();}
   else if(target.id==='grade-permitted'){const name=document.getElementById('grade-kind').value,input=document.querySelector(`#grade-fields [name="${name}"]`);input.value=input.value.toUpperCase()==='P'?'':'P';input.dispatchEvent(new Event('input',{bubbles:true}));refreshGradeEditor();}
   else if(target.dataset.editGradeMobile)openGradesDialog(target.dataset.editGradeMobile);

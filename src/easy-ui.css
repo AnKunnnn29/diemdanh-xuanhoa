@@ -119,6 +119,13 @@ input:focus, select:focus, textarea:focus, button:focus { scroll-margin-block:6r
 .session-summary-list { list-style:none; padding:0; margin:var(--space-md) 0 0; }
 .session-summary-list li { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-sm); padding-block:var(--space-md); border-top:var(--rule-hair) solid var(--color-rule); }
 .session-summary-number { min-width:1.5rem; color:var(--color-muted); }
+.session-summary-code { flex:0 0 6.25rem; font-weight:600; overflow-wrap:anywhere; }
+.session-summary-columns { display:grid; grid-template-columns:6.25rem minmax(0,1fr); gap:var(--space-sm); margin-top:var(--space-md); color:var(--color-ink-2); font-size:var(--text-sm); }
+.session-summary-columns+.session-summary-list { margin-top:var(--space-xs); }
+.session-summary-actions { display:flex; flex-wrap:wrap; gap:var(--space-sm); margin-block:var(--space-md); }
+.session-summary-actions .button { flex:1 1 12rem; min-height:var(--control-height); white-space:normal; text-align:center; }
+.session-summary-copy-status { min-height:1.5em; }
+.session-summary [data-summary-copy-text] { width:100%; margin-top:var(--space-sm); }
 .session-summary-person { flex:1; min-width:min(100%,10rem); overflow-wrap:anywhere; }
 .session-summary-person strong,.session-summary-person small { display:block; }
 .session-summary-person small,.session-summary-time { color:var(--color-ink-2); font-size:var(--text-sm); }
@@ -126,7 +133,7 @@ input:focus, select:focus, textarea:focus, button:focus { scroll-margin-block:6r
 .session-summary-followup details { margin-top:var(--space-md); }
 .session-summary-followup summary { min-height:var(--control-height); padding-block:var(--space-sm); cursor:pointer; }
 .session-summary-followup summary span { margin-left:var(--space-sm); }
-@media(min-width:60rem) { .session-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; } }
+@media(min-width:60rem) { .session-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; } .session-summary-grid-open { grid-template-columns:minmax(0,1fr); } }
 .scanner-methods .button { flex:1; }
 .scanner-methods [aria-pressed="true"] { background:var(--color-accent-soft); border-color:var(--color-accent); }
 .phone-action { display:inline-flex; align-items:center; gap:var(--space-xs); min-height:var(--control-height); color:var(--color-accent); font-weight:700; text-decoration:underline; text-underline-offset:.2em; }
