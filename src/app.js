@@ -12,7 +12,9 @@ import jsQR from 'jsqr';
 import { landing } from './landing.js';
 import {requestsPage,requestTable,requestDialogs,requestStates,makeupDate} from './requests-ui.js';
 import {attendanceHistory,summarizeAttendance} from './attendance-metrics.js';
-import {groupSessionAttendance,sessionSummaryHtml,presentClipboardText,copySessionText} from './session-summary.js';
+import {groupSessionAttendance,sessionSummaryHtml,presentClipboardText,copySessionText,earlyMassAttendance} from './session-summary.js';
+import {sessionAttendancePrintHtml} from './session-attendance-print.js';
+import {renderPrintWindow} from './print-window.js';
 import {scanAnnouncement,scanBubbleHtml,scanConfirmationHtml} from './scan-notification.js';
 import {createDevelopmentUI} from './development-ui.js';
 import {createManagementUI} from './management-ui.js';
@@ -510,7 +512,25 @@ function sessionAttendanceGroups(session){
 }
 function sessionSummary(session){
   return sessionSummaryHtml(sessionAttendanceGroups(session),{esc,timeOf,closed:session.closed,
+    earlyGroups:session.activity==='mass'?earlyMassAttendance(sessionPeople(session),state.marks,session.date):null,
     context:`${session.scope==='all'?'Tất cả lớp':session.scope} · ${activities[session.activity]} · ${shortDate(session.date)}`});
+}
+async function printSessionSummary(button){
+  const session=current();if(!session||view!=='attendance'||!auth.user())return;
+  const status=button.closest('.session-summary').querySelector('[data-summary-print-status]');
+  const epoch=authEpoch,identifier=session.id,isCurrent=()=>epoch===authEpoch&&view==='attendance'&&current()?.id===identifier;
+  const win=window.open('/print.html','_blank');
+  if(!win){status.textContent='Trình duyệt đang chặn cửa sổ in. Cho phép mở cửa sổ bật lên rồi thử lại.';return;}
+  win.opener=null;button.disabled=true;button.setAttribute('aria-busy','true');status.textContent='Đang chuẩn bị bản in…';
+  try{
+    const title=session.activity==='mass'?'Danh sách thiếu nhi tham dự Thánh lễ':`Danh sách ${activities[session.activity].toLocaleLowerCase('vi')}`;
+    const html=sessionAttendancePrintHtml({groups:sessionAttendanceGroups(session),
+      earlyGroups:session.activity==='mass'?earlyMassAttendance(sessionPeople(session),state.marks,session.date):null,
+      scope:session.scope==='all'?'Tất cả lớp':session.scope,date:shortDate(session.date),activityLabel:activities[session.activity],year:state.year,title,closed:session.closed},{esc});
+    await renderPrintWindow(win,html,{isCurrent});
+    if(isCurrent()&&status.isConnected)status.textContent='Đã mở danh sách. Chọn In / Lưu PDF trong cửa sổ mới.';
+  }catch(error){if(!win.closed)win.close();if(isCurrent()&&status.isConnected)status.textContent=error.message;}
+  finally{if(button.isConnected){button.disabled=false;button.removeAttribute('aria-busy');if(isCurrent()&&document.activeElement===document.body)button.focus({preventScroll:true});}}
 }
 async function copyPresent(button){
   const session=current();if(!session||view!=='attendance'||!auth.user())return;
@@ -1781,6 +1801,7 @@ document.addEventListener('click',event=>{
   else if(target.dataset.easyAction){if(target.dataset.easyAction==='attendance')beginSetup(true);else route(target.dataset.easyAction);}
   else if(target.id==='change-attendance-session')beginSetup();
   else if(target.dataset.copyPresent)copyPresent(target);
+  else if(target.hasAttribute('data-print-session-summary'))printSessionSummary(target);
   else if(target.id==='grade-show-all'){const fields=document.getElementById('grade-fields');fields.dataset.entry=fields.dataset.entry==='full'?'single':'full';refreshGradeEditor();}
   else if(target.id==='grade-permitted'){const name=document.getElementById('grade-kind').value,input=document.querySelector(`#grade-fields [name="${name}"]`);input.value=input.value.toUpperCase()==='P'?'':'P';input.dispatchEvent(new Event('input',{bubbles:true}));refreshGradeEditor();}
   else if(target.dataset.editGradeMobile)openGradesDialog(target.dataset.editGradeMobile);
