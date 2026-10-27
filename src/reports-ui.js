@@ -1,11 +1,15 @@
 const activities={mass:'Thánh lễ',lesson:'Giáo lý',early:'Lễ sớm'};
 
-export function reportFiltersFromHash(hash,currentMonth){
+export function reportFiltersFromHash(hash,currentMonth,remembered=null){
   const params=new URLSearchParams(hash.split('?')[1]||'');
-  const month=params.get('month');
+  // Menu links have no report query. Keep the last applied selection, while
+  // explicit URLs (including Back/Forward) remain authoritative and validated.
+  const fallback=!params.has('month')&&!params.has('activity')?remembered:null;
+  const month=params.get('month')??fallback?.month;
+  const activity=params.get('activity')??fallback?.activity;
   return {
     month:/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/.test(month||'')?month:currentMonth,
-    activity:Object.hasOwn(activities,params.get('activity'))?params.get('activity'):'mass',
+    activity:Object.hasOwn(activities,activity)?activity:'mass',
   };
 }
 
@@ -22,7 +26,7 @@ export function createReportsUI({api,esc,state}){
     identityEpoch++;groupRows=[];groupDrafts.clear();serverGroups.clear();groupSaving=false;groupMessage='';groupsOpen=false;
   }
   function checkScope(){
-    if(draftScope!==scope()){resetGroups();draftScope=scope();}
+    if(draftScope!==scope()){resetGroups();filters={month:currentMonth(),activity:'mass'};draftScope=scope();}
   }
   function groupFeedback(){
     const message=document.getElementById('report-groups-status');
@@ -45,7 +49,7 @@ export function createReportsUI({api,esc,state}){
     groupFeedback();
   }
   function page(){
-    checkScope();filters=reportFiltersFromHash(location.hash,currentMonth());
+    checkScope();filters=reportFiltersFromHash(location.hash,currentMonth(),filters);
     queueMicrotask(()=>{renderGroups();load(filters,'replace');});
     return `<div class="page-heading"><h1>Báo cáo chuyên cần</h1><p>Tổng hợp theo lớp và khối.</p></div><section class="card report-card"><form id="attendance-report-form" class="report-filters"><label class="field">Tháng<input type="month" name="month" value="${filters.month}" required></label><label class="field">Hoạt động<select name="activity">${Object.entries(activities).map(([key,label])=>`<option value="${key}" ${filters.activity===key?'selected':''}>${label}</option>`).join('')}</select></label><button type="submit" class="button button-primary">Xem báo cáo</button></form><p id="attendance-report-status" role="status" aria-live="polite">Đang tải…</p><button type="button" id="attendance-report-retry" class="button button-secondary" hidden>Thử lại</button><div id="attendance-report-content"></div><div class="feature-actions"><button type="button" id="attendance-report-export" class="button button-secondary" disabled>Tải CSV tổng hợp</button></div></section><div id="report-groups-slot"></div>`;
   }
@@ -140,5 +144,5 @@ export function createReportsUI({api,esc,state}){
     }catch(error){if(epoch===generation&&scope()===owner&&button.isConnected)status().textContent=error.message;}
     finally{if(epoch===generation&&scope()===owner&&button.isConnected)button.disabled=false;}
   });
-  return {page,clear:()=>{generation++;loading=false;resetGroups();draftScope='';}};
+  return {page,clear:()=>{generation++;loading=false;resetGroups();filters={month:currentMonth(),activity:'mass'};draftScope='';}};
 }
