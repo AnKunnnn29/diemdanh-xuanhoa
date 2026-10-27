@@ -95,6 +95,8 @@ class Management:
             ''')
             if 'birth_year' not in {row['name'] for row in db.execute('PRAGMA table_info(staff_profiles)')}:
                 db.execute('ALTER TABLE staff_profiles ADD COLUMN birth_year INTEGER')
+            if 'feast_day' not in {row['name'] for row in db.execute('PRAGMA table_info(staff_profiles)')}:
+                db.execute("ALTER TABLE staff_profiles ADD COLUMN feast_day TEXT DEFAULT ''")
             for user in db.execute("SELECT * FROM users WHERE role='GLV'").fetchall():
                 db.execute('INSERT OR IGNORE INTO staff_profiles(id,user_id,full_name,phone,email,birth_date,address,status,service_from,service_to,note,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
                     (user['id'],user['id'],user['display_name'],'','','','','active','','','',store.stamp()))
@@ -146,6 +148,22 @@ class Management:
             history = [dict(r) for r in db.execute('SELECT * FROM assignment_history ORDER BY id DESC')]
         return {'profiles':profiles,'history':history,'accounts':self.accounts.users()}
 
+    def staff_celebrations(self):
+        profiles = []
+        current = date.today().isoformat()
+        for person in self.staff()['profiles']:
+            if person.get('status', 'active') != 'active':
+                continue
+            if person.get('service_from') and person['service_from'] > current or person.get('service_to') and person['service_to'] < current:
+                continue
+            birthday = ''
+            try:
+                birthday = date.fromisoformat(person.get('birth_date') or '').strftime('%m-%d')
+            except (ValueError, TypeError):
+                pass
+            profiles.append({'id':person['id'], 'name':person['full_name'], 'birthDay':birthday, 'feastDay':person.get('feast_day') or ''})
+        return {'profiles':profiles}
+
     def save_staff(self, user, values):
         name = str(values.get('full_name') or '').strip()
         status = values.get('status','active')
@@ -174,6 +192,19 @@ class Management:
         linked = values.get('user_id') or None
         with self.accounts.db() as db:
             before = db.execute('SELECT * FROM staff_profiles WHERE id=?',(identifier,)).fetchone()
+            feast = values.get('feast_day', before['feast_day'] if before else '')
+            if not isinstance(feast, str):
+                raise ValueError('Nhập ngày bổn mạng theo dạng dd/mm.')
+            feast = feast.strip()
+            if feast:
+                if re.fullmatch(r'\d{2}/\d{2}', feast):
+                    feast = feast[3:] + '-' + feast[:2]
+                if not re.fullmatch(r'\d{2}-\d{2}', feast):
+                    raise ValueError('Nhập ngày bổn mạng theo dạng dd/mm.')
+                try:
+                    date.fromisoformat('2000-' + feast)
+                except ValueError:
+                    raise ValueError('Ngày bổn mạng không tồn tại.')
             if 'birth_year' not in values and not data['birth_date'] and before:
                 birth_year=before['birth_year']
             if linked and not db.execute('SELECT 1 FROM users WHERE id=?',(linked,)).fetchone():
@@ -183,6 +214,7 @@ class Management:
             db.execute('INSERT OR REPLACE INTO staff_profiles(id,user_id,full_name,phone,email,birth_date,address,status,service_from,service_to,note,updated_at,birth_year) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
                 (identifier,linked,name,data['phone'],data['email'],data['birth_date'],data['address'],status,
                  data['service_from'],data['service_to'],data['note'],self.store.stamp(),birth_year))
+            db.execute('UPDATE staff_profiles SET feast_day=? WHERE id=?',(feast,identifier))
             after = dict(db.execute('SELECT * FROM staff_profiles WHERE id=?',(identifier,)).fetchone())
             self.accounts.audit(db,user['id'],'staff-saved',{'before':dict(before) if before else None,'after':after})
         return {'saved':True,'staff':self.staff()}

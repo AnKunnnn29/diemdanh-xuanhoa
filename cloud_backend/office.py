@@ -29,7 +29,7 @@ def csv_file(rows, filename):
 
 class Office(BackupRules, YearRules, PlanningRules, Workflow):
     READ_ACTIONS = {'system','notifications','excel-details','snapshot-export','snapshot-part','year-export','year-file','export-manifest',
-        'admin/staff','admin/audit','admin/audit-export','admin/years','admin/year-history','admin/import-template','admin/admission-options'}
+        'admin/celebrations','admin/staff','admin/audit','admin/audit-export','admin/years','admin/year-history','admin/import-template','admin/admission-options'}
     def __init__(self, service, db, user):
         self.service, self.actor_user = service, user
         self.year = service.year(db)
@@ -336,6 +336,29 @@ class Office(BackupRules, YearRules, PlanningRules, Workflow):
             'historyAccounts':[{'id':r['id'],'displayName':r['display_name']} for r in
                 self.connection.execute(select(m.users.c.id,m.users.c.display_name)).mappings()]}
 
+    def staff_celebrations(self):
+        # Independent of pupil classes/year; expose only anniversary dates and names.
+        current = datetime.now(LOCAL_TZ).date().isoformat()
+        profiles = []
+        for row in self.connection.execute(select(m.staff)).mappings():
+            person = row['payload']
+            if person.get('status', 'active') != 'active':
+                continue
+            if person.get('service_from') and person['service_from'] > current or person.get('service_to') and person['service_to'] < current:
+                continue
+            birthday = ''
+            try:
+                birthday = date.fromisoformat(person.get('birth_date') or '').strftime('%m-%d')
+            except (ValueError, TypeError):
+                pass  # A birth year alone must never become an invented anniversary.
+            feast = person.get('feast_day') or ''
+            try:
+                datetime.strptime('2000-' + feast, '%Y-%m-%d')
+            except (ValueError, TypeError):
+                feast = ''
+            profiles.append({'id': row['id'], 'name': person.get('full_name', ''), 'birthDay': birthday, 'feastDay': feast})
+        return {'profiles': sorted(profiles, key=lambda p: p['name'])}
+
     def save_staff(self, values):
         name = clean(values.get('full_name'))
         status = values.get('status', 'active')
@@ -370,6 +393,20 @@ class Office(BackupRules, YearRules, PlanningRules, Workflow):
             raise CloudError('Tài khoản liên kết không tồn tại.')
         if linked and self.connection.execute(select(m.staff.c.id).where(m.staff.c.user_id == linked, m.staff.c.id != identifier)).first():
             raise CloudError('Tài khoản đã liên kết hồ sơ GLV khác.')
+        feast = values.get('feast_day', existing['payload'].get('feast_day', '') if existing else '')
+        if not isinstance(feast, str):
+            raise CloudError('Nhập ngày bổn mạng theo dạng dd/mm.')
+        feast = feast.strip()
+        if feast:
+            if re.fullmatch(r'\d{2}/\d{2}', feast):
+                feast = feast[3:] + '-' + feast[:2]
+            if not re.fullmatch(r'\d{2}-\d{2}', feast):
+                raise CloudError('Nhập ngày bổn mạng theo dạng dd/mm.')
+            try:
+                datetime.strptime('2000-' + feast, '%Y-%m-%d')
+            except ValueError:
+                raise CloudError('Ngày bổn mạng không tồn tại.')
+        data['feast_day'] = feast
         if 'birth_year' not in values and not data['birth_date'] and existing:
             birth_year = existing['payload'].get('birth_year')
         data.update(full_name=name, status=status, birth_year=birth_year, updated_at=self.stamp())
@@ -465,6 +502,8 @@ class Office(BackupRules, YearRules, PlanningRules, Workflow):
         self.service.admin(self.actor_user)
         if action == 'system':
             return self.system_info()
+        if action == 'admin/celebrations':
+            return self.staff_celebrations()
         if action == 'admin/staff':
             return self.staff()
         if action == 'admin/admission-options':

@@ -1,0 +1,12 @@
+.student-combobox { position:relative; display:block; min-width:0; width:100%; }
+.student-combobox input { width:100%; }
+.card.student-combobox-card { overflow:visible; }
+.student-options { position:absolute; z-index:40; inset:calc(100% + 6px) 0 auto; display:block; max-height:min(22rem,40dvh); overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; border:1px solid var(--color-rule); border-radius:14px; background:var(--color-surface); box-shadow:var(--shadow-soft); padding:6px; text-align:left; }
+.student-options-above { inset:auto 0 calc(100% + 6px); }
+.student-options[hidden] { display:none; }
+.student-option { display:block; min-height:52px; padding:10px 12px; border-radius:9px; cursor:pointer; color:var(--color-ink); line-height:1.4; }
+.student-option strong,.student-option small { display:block; overflow-wrap:anywhere; }
+.student-option small { color:var(--color-muted); font-size:var(--text-sm); margin-top:3px; }
+.student-option:hover,.student-option[aria-selected=true] { background:var(--color-success-soft); }
+.student-option[aria-selected=true] { outline:2px solid var(--color-success); outline-offset:-2px; }
+.student-options-hint { display:block; padding:10px 12px; font-size:var(--text-sm); color:var(--color-muted); border-top:1px solid var(--color-rule); overflow-wrap:anywhere; }

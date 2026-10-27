@@ -249,9 +249,8 @@ class Service:
             workflow.shutdown()
         attendance_rules = {r['code']: {'enrolledFrom': r['payload'].get('enrolledFrom')}
             for r in db.execute(select(m.students).where(m.students.c.year_id == year['id'], m.students.c.class_id.in_(ids))).mappings()}
-        from .insights import celebration_roster
         return {'privacyVersion': 2, 'access': privacy.grants(db, year['id'], principal),
-                'attendanceRules': attendance_rules, 'celebrations': celebration_roster(db, year['id'], ids),
+                'attendanceRules': attendance_rules,
                 'year': year['label'], 'classes': groups, 'students': people, 'marks': marks,
                 'user': principal, 'yearId': year['id'], 'accounts': self.account_list(db) if user['role'] == 'Admin' else [],
                 'isManager': user['role'] == 'Admin', 'connected': True, 'mode': 'cloud', 'gradeMode': 'portable',
@@ -496,6 +495,8 @@ class Service:
             return result
 
     def profile_write(self, db, user, values):
+        if {'feastDay', 'feastConfirmed'}.intersection(values):
+            raise CloudError('Lịch sinh nhật và bổn mạng chỉ dành cho hồ sơ GLV do Admin quản lý.', 403, 'forbidden')
         year = self.year(db)
         code = str(values.get('code') or '').strip().upper()
         row = one(db, select(m.students).where(m.students.c.year_id == year['id'], m.students.c.code == code))
@@ -530,25 +531,6 @@ class Service:
                 else:
                     raise CloudError('Ngày sinh / rửa tội không hợp lệ.')
             profile[name] = value
-        if 'feastDay' in values:
-            import re
-            feast = values['feastDay']
-            if not isinstance(feast, str):
-                raise CloudError('Ngày bổn mạng không hợp lệ.')
-            feast = feast.strip()
-            if feast:
-                if re.fullmatch(r'\d{2}/\d{2}', feast):
-                    feast = feast[3:] + '-' + feast[:2]
-                if not re.fullmatch(r'\d{2}-\d{2}', feast):
-                    raise CloudError('Nhập ngày bổn mạng theo dạng dd/mm.')
-                try:
-                    datetime.strptime('2000-' + feast, '%Y-%m-%d')
-                except ValueError:
-                    raise CloudError('Ngày bổn mạng không tồn tại.')
-                if values.get('feastConfirmed') is not True:
-                    raise CloudError('Xác nhận ngày bổn mạng đã được kiểm tra trước khi lưu.')
-            profile.update(feastDay=feast, feastConfirmed=bool(feast),
-                           feastConfirmedBy=user['id'] if feast else '', feastConfirmedAt=stamp() if feast else '')
         if len(profile.get('fullName', '')) < 2 or profile.get('gender', '') not in ('', 'Nam', 'Nữ'):
             raise CloudError('Kiểm tra họ tên và giới tính.')
         profile['name'] = ' '.join(filter(None, (profile.get('saintName'), profile['fullName'])))

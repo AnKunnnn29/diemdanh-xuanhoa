@@ -1,5 +1,5 @@
 // Public application shell only. Authenticated API responses never enter CacheStorage.
-const CACHE='xuanhoa-shell-d4125bb06a980084be91';
+const CACHE='xuanhoa-shell-7812498fdd0aefec2804';
 const FILES=['/','/app.js','/styles.css','/assets/logo-xuan-hoa.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));

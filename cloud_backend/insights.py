@@ -9,24 +9,6 @@ from .security import CloudError
 from .persistence import Download
 
 
-def celebration_roster(db, year, ids):
-    result = []
-    for row in db.execute(select(m.students).where(m.students.c.year_id == year, m.students.c.class_id.in_(ids))).mappings():
-        person = row['payload']
-        raw = str(person.get('birthDate') or '')
-        birthday = ''
-        for pattern in ('%Y-%m-%d', '%d/%m/%Y'):
-            from datetime import datetime
-            try:
-                birthday = datetime.strptime(raw, pattern).strftime('%m-%d')
-                break
-            except ValueError:
-                pass
-        result.append({**privacy.directory({**person, 'id': row['code'], 'classId': row['class_id']}),
-            'birthDay': birthday, 'feastDay': person.get('feastDay', '') if person.get('feastConfirmed') else ''})
-    return result
-
-
 def attendance_report(service, db, user, query):
     from .workflows import LOCAL_TZ
     from datetime import datetime

@@ -54,7 +54,7 @@ export function createAuthUI({api,esc,page,onReady,onClear,pending,state,classes
     host.innerHTML=`<div class="account-identity"><strong>${esc(user.displayName)}</strong><small>${esc(user.username)} · ${user.role==='Admin'?'Admin · Quản trị':'Giáo lý viên'}</small></div><details class="account-menu"><summary>Tài khoản</summary><div><button type="button" id="change-password" class="button button-secondary">Đổi mật khẩu</button><button type="button" id="auth-logout" class="button button-secondary">Đăng xuất</button></div></details>`;
     document.querySelectorAll('a[href="#management"],a[href="#excel"],a[href="#accounts"],a[href="#administration"],[data-edit-teachers],[data-reconcile-grades]').forEach(el=>el.hidden=user.role!=='Admin');
     document.querySelectorAll('[data-admin-navigation]').forEach(el=>el.hidden=user.role!=='Admin');
-    document.querySelectorAll('a[href="#staff"]').forEach(el=>el.hidden=user.role!=='Admin');
+    document.querySelectorAll('a[href="#staff"],a[href="#celebrations"]').forEach(el=>el.hidden=user.role!=='Admin');
     document.querySelectorAll('.actor-input').forEach(el=>{el.value=user.displayName;el.readOnly=true;});
     if(user.role!=='Admin') {
       document.querySelectorAll('#export-class option[value="all"]').forEach(el=>el.remove());

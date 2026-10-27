@@ -28,7 +28,8 @@ import {contactFields,encodeContactFields,parentContactMarkup} from './parent-co
 import {createPortalTransition} from './portal-transition.js';
 import {downloadResponse} from './cloud-download.js';
 import {createOfflineAttendance,offlinePanel} from './offline-attendance.js';
-import {celebrationsPage,feastProfileFields} from './celebrations.js';
+import {createStaffCelebrationsUI} from './staff-celebrations.js';
+import {attachStudentCombobox} from './student-combobox.js';
 
 const cn = (...values) => twMerge(clsx(values));
 const svg = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
@@ -80,8 +81,6 @@ let students = [];
 let connected = false;
 let offlineRestored=false;
 let offlineSyncTask=null;
-const celebrationFilters={range:'week',month:todayMonth(),kind:'all',term:''};
-function todayMonth(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit'}).format(new Date()).slice(0,7);}
 const offlineAttendance=createOfflineAttendance({onChange:()=>renderOfflinePanel()});
 let authEpoch=0;
 let connectionIssue=null,reconnectTimer=null,reconnectAttempt=0,reconnecting=false,refreshing=false;
@@ -111,7 +110,8 @@ let attendanceStage='setup',attendanceDraft=null,attendanceSetupError='';
 if('largeText' in preferences){delete preferences.largeText;try{localStorage.setItem(storageKey,JSON.stringify(preferences));}catch{}}
 document.documentElement.removeAttribute('data-large-text');
 const development=createDevelopmentUI({state:()=>state,students:()=>students,classes:()=>classes,actor:()=>preferences.actor||'',studentFilter:()=>studentFilter,carePeople:()=>calculateCareMetrics().people,careMarks:()=>careMarks(),api,queueWrite,applyServer,render,today,shortDate,downloadBlob,rememberActor,toast,esc,i,reauthenticate:()=>auth.clear()});
-const management=createManagementUI({state:()=>state,classes:()=>classes,api,queueWrite,applyServer,render,toast,esc,reauthenticate:()=>auth.clear()});
+const staffCalendar=createStaffCelebrationsUI({api,state:()=>state,render,esc,today});
+const management=createManagementUI({state:()=>state,classes:()=>classes,api,queueWrite,applyServer,render,toast,esc,reauthenticate:()=>auth.clear(),onStaffChanged:()=>staffCalendar.clear()});
 const enrollment=createEnrollmentUI({state:()=>state,classes:()=>classes,api,queueWrite,applyServer,render,toast,esc,today,
   openStudents:name=>{rememberClass(name);route('students');},
   onChanged:()=>{management.clear();parity.clear();currentGradesData=null;gradesLoadToken++;gradesLoading=false;}});
@@ -148,11 +148,10 @@ function applyServer(data) {
   studentFilter=workingClass||'all';careClassFilter=workingClass||'all';
   const todaySession = data.sessions.find(s => s.date === today() && s.activity === 'mass' && s.scope === 'all');
   const active = (state.active && data.sessions.some(s=>s.id===state.active)) ? state.active : (todaySession ? todaySession.id : (preferences.active && data.sessions.some(s=>s.id===preferences.active) ? preferences.active : data.sessions.at(-1)?.id));
-  state = {privacyVersion:data.privacyVersion,access:data.access||{},studentDirectory:data.students,celebrations:data.celebrations||[],mode:data.mode||'excel',yearId:data.yearId,year:data.year,user:data.user,accounts:data.accounts||[],sessions:data.sessions, marks:data.marks, requests:data.requests||[],requestEvents:data.requestEvents||[],recurringMass:data.recurringMass||[],studentStatuses:data.studentStatuses||[],careNotes:data.careNotes||[],managementEvents:data.managementEvents||[],yearPlans:data.yearPlans||[],gradeMode:data.gradeMode||'native',isManager:!!data.isManager, active, pendingScans:data.pendingScans||[], downloads:state.downloads.length?state.downloads:(preferences.downloads || [])};
+  state = {privacyVersion:data.privacyVersion,access:data.access||{},studentDirectory:data.students,mode:data.mode||'excel',yearId:data.yearId,year:data.year,user:data.user,accounts:data.accounts||[],sessions:data.sessions, marks:data.marks, requests:data.requests||[],requestEvents:data.requestEvents||[],recurringMass:data.recurringMass||[],studentStatuses:data.studentStatuses||[],careNotes:data.careNotes||[],managementEvents:data.managementEvents||[],yearPlans:data.yearPlans||[],gradeMode:data.gradeMode||'native',isManager:!!data.isManager, active, pendingScans:data.pendingScans||[], downloads:state.downloads.length?state.downloads:(preferences.downloads || [])};
   connected = true;
   if(!offlineRestored)offlineAttendance.remember(data);
 }
-function celebrationPeople(){return state.privacyVersion===2?state.celebrations.map(p=>({...p,className:classes.find(c=>c.id===p.classId)?.name||'',birthDate:p.birthDay?'2000-'+p.birthDay:'',feastConfirmed:!!p.feastDay})):students;}
 function sessionPeople(session) {
   if (session.activity === 'mass') {
     return scoped(session.scope).filter(s => !classes.find(c=>c.id===s.classId)?.archived&&(!s.enrolledFrom || s.enrolledFrom <= session.date)&&lifecycleStatus(state.studentStatuses,s.id,session.date)==='active');
@@ -569,7 +568,7 @@ function attendance() {
   ${pendingScansBanner(session)}
   <div id="scan-feedback" class="session-feedback">${feedbackHtml()}</div><div id="scan-result-slot"></div><div class="scanner-methods" role="group" aria-label="Cách điểm danh"><button type="button" class="button button-secondary" data-scan-method="camera" aria-pressed="${scanMethod==='camera'}">${i('camera')}Quét camera</button><button type="button" class="button button-secondary" data-scan-method="text" aria-pressed="${scanMethod==='text'}">${i('keyboard')}Nhập mã / Tìm tên</button></div>
   <div class="scanner-grid"><div class="scanner-column"><section class="card" data-scan-panel="camera" ${scanMethod==='camera'?'':'hidden'}><div class="card-header"><h2><span>${i('camera')}</span>Quét QR</h2><button class="button button-primary" id="camera-toggle" ${session.closed?'disabled':''}>${i('camera')}${cameraStream?'Tắt camera':'Bật camera'}</button></div><div class="scanner-surface ${cameraStream?'live':''}" id="scanner-surface"><video id="camera-video" playsinline muted autoplay ${cameraStream?'':'hidden'}></video><div class="scan-frame" aria-hidden="true"></div><h3>Đặt mã QR vào khung hình</h3><p>Cho phép truy cập camera khi bạn muốn bắt đầu quét thẻ.</p></div><div class="camera-controls"><label class="button button-text" for="qr-image">Chọn ảnh QR</label><input id="qr-image" type="file" accept="image/*" class="qr-file-input" aria-label="Chọn ảnh mã QR trên thẻ" ${session.closed?'disabled':''}><button class="button button-text" data-focus-code>${i('keyboard')}Dùng mã thẻ</button></div><p id="camera-error" class="inline-message px-5 pb-4" role="status" hidden></p></section>
-  <section class="card" data-scan-panel="text" ${scanMethod==='text'?'':'hidden'}><div class="card-body"><form id="code-form"><div class="manual-input-box"><div class="manual-input-header"><strong>${i('keyboard')}Nhập tay khi quên thẻ / Nhập sau lễ</strong><small>Nhập tên (vd: Lam Anh, Gia Bảo) hoặc mã thẻ (vd: XH22008), rồi nhấn Enter</small></div><div class="input-actions"><label class="field flex-1" for="student-code">Tên hoặc mã thiếu nhi<input id="student-code" name="code" list="student-suggestions" autocomplete="off" spellcheck="false" placeholder="Ví dụ: Lam Anh, Gia Bảo hoặc XH22008..." aria-describedby="scan-feedback code-help" required ${session.closed?'disabled':''}><datalist id="student-suggestions">${sessionPeople(session).map(s=>`<option value="${esc(s.id)}">${esc(s.saintName?s.saintName+' ': '')}${esc(s.fullName)} · ${esc(s.className)} (${esc(s.id)})</option>`).join('')}</datalist></label><button class="button button-primary" type="submit" ${session.closed?'disabled':''}>${i('check')}Ghi nhận</button></div><p class="field-help code-help" id="code-help">💡 Hỗ trợ gõ không dấu. Nếu về nhà nhập sau, hệ thống tự động tìm đúng em và ghi vào Excel.</p></div></form></div></section></div>
+  <section class="card" data-scan-panel="text" ${scanMethod==='text'?'':'hidden'}><div class="card-body"><form id="code-form"><div class="manual-input-box"><div class="manual-input-header"><strong>${i('keyboard')}Nhập tay khi quên thẻ / Nhập sau lễ</strong><small>Nhập tên (vd: Lam Anh, Gia Bảo) hoặc mã thẻ (vd: XH22008), rồi nhấn Enter</small></div><div class="input-actions"><label class="field flex-1" for="student-code">Tên hoặc mã thiếu nhi<input id="student-code" name="code" autocomplete="off" spellcheck="false" placeholder="Ví dụ: Lam Anh, Gia Bảo hoặc XH22008..." aria-describedby="scan-feedback code-help" required ${session.closed?'disabled':''}></label><button class="button button-primary" type="submit" ${session.closed?'disabled':''}>${i('check')}Ghi nhận</button></div><p class="field-help code-help" id="code-help">💡 Hỗ trợ gõ không dấu. Nếu về nhà nhập sau, hệ thống tự động tìm đúng em và ghi vào Excel.</p></div></form></div></section></div>
   <aside class="scan-side"><section class="card"><div class="card-header"><h2>Kết quả buổi điểm danh</h2>${badge(session.closed?'Đã kết thúc':'Đang mở',session.closed)}</div><div class="card-body"><div class="scan-summary"><div><strong>${st.present}</strong><span>Có mặt</span></div><div><strong>${st.permitted}</strong><span>Nghỉ phép</span></div><div><strong>${st.pending}</strong><span>Chưa ghi nhận</span></div><div><strong>${st.absent}</strong><span>Vắng mặt</span></div></div><p class="field-help">${st.waiting} em chờ lễ bù · ${st.makeupDone} em đã quét lễ bù cho buổi khác · <a href="#requests">Xử lý xin phép / đổi lễ</a></p><div class="progress-label"><span>Đã ghi trạng thái</span><strong>${st.processed} / ${st.total} em</strong></div><div class="progress-track" role="progressbar" aria-label="Tỷ lệ đã ghi trạng thái" aria-valuenow="${st.total?Math.round(st.processed/st.total*100):0}" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill" style="width:${st.total?st.processed/st.total*100:0}%"></div></div><button class="button button-secondary w-full mt-4" data-route="files">${i('download')}Tải sổ lớp</button>${!session.closed?`<button class="button button-text w-full mt-2" id="close-session">Kết thúc điểm danh${i('checkcircle')}</button>`:`<p class="field-help mt-4">Buổi đã chốt. Bạn vẫn có thể xem và tải kết quả.</p>`}</div></section><section class="card"><div class="card-header"><h2>Các buổi đã mở</h2></div><div class="card-body small-session-list">${state.sessions.slice().reverse().map(s=>`<button class="session-choice ${s.id===session.id?'selected':''}" data-open-session="${s.id}"><span>${esc(activities[s.activity])}<small>${shortDate(s.date)} · ${esc(s.scope==='all'?'Tất cả lớp':s.scope)}</small></span>${i(s.closed?'checkcircle':'arrow')}</button>`).join('')}</div></section></aside></div>
   ${sessionSummary(session)}
   <section class="card attendance-register"><div class="card-header"><h2>Danh sách trong buổi</h2><span id="attendance-count" class="result-count" role="status" aria-live="polite">${attendancePeople(session).length} / ${st.total} em</span></div>
@@ -669,7 +668,6 @@ async function openProfile(code) {
         <label class="field">Ngày rửa tội
           <input type="text" name="baptismDate" value="${esc(s.baptismDate || '')}" placeholder="dd/mm/yyyy">
         </label>
-        ${state.mode==='cloud'?feastProfileFields(s,{esc}):''}
         ${state.mode==='cloud'?privacyUI.slot(s):contactFields(s,{esc})}
         <label class="field">Giáo họ (Họ lẻ)
           <input type="text" name="subParish" value="${esc(s.subParish || '')}" placeholder="Tên giáo họ">
@@ -685,7 +683,6 @@ async function submitProfile(event) {
   event.preventDefault();
   const form = event.target;
   const values = Object.fromEntries(new FormData(form));
-  if('feastDay' in values)values.feastConfirmed=values.feastConfirmed==='on';
   const btn = document.getElementById('profile-save-btn');
   btn.disabled = true;
   document.getElementById('profile-dialog-error').textContent = 'Đang lưu hồ sơ…';
@@ -1250,7 +1247,7 @@ function render() {
   const scrollPosition=window.scrollY;
   const activeStudent = document.activeElement?.dataset?.stateId||document.activeElement?.dataset?.quickAttend;
   if(view!=='attendance') stopCamera();
-  const labels = { reports:'Báo cáo chuyên cần',celebrations:'Sinh nhật & bổn mạng',classes:'Lớp giáo lý',staff:'Hồ sơ GLV',administration:'Quản trị hệ thống',notifications:'Thông báo & nhắc việc',start:'Công việc hôm nay',home:'Trang chủ', overview:'Tổng quan', attendance:'Điểm danh QR', students:'Thiếu nhi & lớp', files:'Báo cáo & tải sổ', requests:'Xin phép & đổi lễ', teachers:'Phân công GLV', grades:'Bảng điểm', care:'Theo dõi thiếu nhi',management:'Sao lưu & năm học',excel:'Sổ lớp & báo cáo',accounts:'Tài khoản & phân quyền' };
+  const labels = { reports:'Báo cáo chuyên cần',celebrations:'Sinh nhật & bổn mạng GLV',classes:'Lớp giáo lý',staff:'Hồ sơ GLV',administration:'Quản trị hệ thống',notifications:'Thông báo & nhắc việc',start:'Công việc hôm nay',home:'Trang chủ', overview:'Tổng quan', attendance:'Điểm danh QR', students:'Thiếu nhi & lớp', files:'Báo cáo & tải sổ', requests:'Xin phép & đổi lễ', teachers:'Phân công GLV', grades:'Bảng điểm', care:'Theo dõi thiếu nhi',management:'Sao lưu & năm học',excel:'Sổ lớp & báo cáo',accounts:'Tài khoản & phân quyền' };
   document.getElementById('breadcrumb').textContent = labels[view] || 'Tổng quan';
   document.title = `${labels[view]} · Giáo Xứ Xuân Hoà`;
   document.querySelectorAll('[data-page]').forEach(a=>{a.className=cn('nav-item',a.dataset.page===view&&'active');if(a.dataset.page===view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
@@ -1259,8 +1256,9 @@ function render() {
   document.body.toggleAttribute('data-class-context',classPages.includes(view)&&classes.length>0);
   document.getElementById('mobile-menu-label').textContent=labels[view]||'Điều hướng';
   workContext();
-  page.innerHTML = !classes.length&&classPages.includes(view)?'<section class="card auth-empty"><h1>Chưa được phân công lớp</h1><p>Liên hệ Admin để được phân công. Sau đó tải lại trang để mở sổ lớp.</p><a class="button button-secondary" href="#home">Về trang chủ</a></section>':view==='reports'?reportsUI.page():view==='classes'?enrollment.page():view==='staff'?management.staffDirectory():view==='administration'?management.page():view==='notifications'?management.notificationsPage():view==='accounts'?auth.accountsPage():view==='start'?startPage({esc,i,workingClass,today,longDate,students:celebrationPeople(),requests:state.requests,sessions:state.sessions,careNotes:state.careNotes,pendingScans:state.pendingScans,offlineCount:offlineAttendance.list().length}):view==='home'?landing({i,esc,students,classNames,session:current(),stats,activities,shortDate,feedback:scanFeedback,classLevelKey,year:document.querySelector('.year-card strong').textContent}):view==='overview'?overview():view==='attendance'?attendance():view==='celebrations'?celebrationsPage({students:celebrationPeople(),workingClass,today:today(),filters:celebrationFilters,esc,i,shortDate}):view==='students'?studentView():view==='files'?filesView():view==='requests'?requestsPage(requestContext())+development.recurringPanel():view==='teachers'?teachersView():view==='grades'?gradesView():view==='care'?careView():view==='management'?development.managementPage():view==='excel'?parity.page():overview();
+  page.innerHTML = !classes.length&&classPages.includes(view)?'<section class="card auth-empty"><h1>Chưa được phân công lớp</h1><p>Liên hệ Admin để được phân công. Sau đó tải lại trang để mở sổ lớp.</p><a class="button button-secondary" href="#home">Về trang chủ</a></section>':view==='reports'?reportsUI.page():view==='classes'?enrollment.page():view==='staff'?management.staffDirectory():view==='administration'?management.page():view==='notifications'?management.notificationsPage():view==='accounts'?auth.accountsPage():view==='start'?startPage({esc,i,workingClass,today,longDate,students,requests:state.requests,sessions:state.sessions,careNotes:state.careNotes,pendingScans:state.pendingScans,offlineCount:offlineAttendance.list().length}):view==='home'?landing({i,esc,students,classNames,session:current(),stats,activities,shortDate,feedback:scanFeedback,classLevelKey,year:document.querySelector('.year-card strong').textContent}):view==='overview'?overview():view==='attendance'?attendance():view==='celebrations'?staffCalendar.page():view==='students'?studentView():view==='files'?filesView():view==='requests'?requestsPage(requestContext())+development.recurringPanel():view==='teachers'?teachersView():view==='grades'?gradesView():view==='care'?careView():view==='management'?development.managementPage():view==='excel'?parity.page():overview();
   management.restoreDrafts();
+  attachStudentCombobox(document.getElementById('student-code'),{people:()=>sessionPeople(current())});
   if(renderedView!==view){
     if(!document.documentElement.hasAttribute('data-portal-transition')){
       page.querySelector('.page-heading')?.classList.add('motion-enter');
@@ -1609,7 +1607,7 @@ function validateRequestStep(step){
 function openRequest(code=''){
   if(pendingWrites){toast('Đang ghi Excel. Chờ hoàn tất trước khi lập đơn.');return;}
   const dialog=document.getElementById('request-dialog'),form=document.getElementById('request-form');form.reset();fillActors(dialog);
-  document.getElementById('request-students').innerHTML=students.map(s=>`<option value="${esc(s.id)}" label="${esc(s.name+' · '+s.className)}"></option>`).join('');
+  attachStudentCombobox(document.getElementById('request-code'),{people:()=>students});
   document.getElementById('request-code').value=code;document.getElementById('request-date').value=current().date;
   document.getElementById('request-activity').value=current().activity;
   document.getElementById('request-error').textContent='';requestFormHelp();dialog.showModal();requestWizard(form,()=>{const v=Object.fromEntries(new FormData(form));const person=students.find(s=>s.id===String(v.code).trim().toUpperCase());return [person?.name||v.code,person?.className||'',v.kind==='makeup'?'Đổi ngày đi lễ':'Xin nghỉ phép',v.date,v.targetDate?'Đi thay vào '+v.targetDate:''].filter(Boolean).join(' · ');},validateRequestStep);
@@ -1888,9 +1886,6 @@ document.addEventListener('submit',async event=>{
   else if(event.target.id==='grade-reconcile-form'){reconcileGrades(event);}
 });
 document.addEventListener('change',event=>{
-  if(event.target.id==='celebration-range'){celebrationFilters.range=event.target.value;render();return;}
-  if(event.target.id==='celebration-kind'){celebrationFilters.kind=event.target.value;render();return;}
-  if(event.target.id==='celebration-month'){if(/^\d{4}-\d{2}$/.test(event.target.value))celebrationFilters.month=event.target.value;render();return;}
   if(event.target.id==='workspace-class'){chooseWorkingClass(event.target.value);}
   else if(event.target.id==='book-class'){rememberClass(event.target.value);render();}
   else if(event.target.id==='grade-kind'){refreshGradeEditor();}
@@ -1922,8 +1917,6 @@ document.addEventListener('change',event=>{
   else if(event.target.id==='care-month-filter'){careMonthFilter=event.target.value;render();}
 });
 document.addEventListener('input',event=>{
-  if(event.target.name==='feastDay'){const confirmField=event.target.form?.elements.feastConfirmed;if(confirmField){confirmField.checked=false;confirmField.required=!!event.target.value.trim();}}
-  if(event.target.id==='celebration-search'){celebrationFilters.term=event.target.value;render();return;}
   if(event.target.matches('.grade-cell-input,#correction-attended-time')&&event.target.validity.valid){event.target.removeAttribute('aria-invalid');event.target.closest('label')?.querySelector('.grade-field-error')?.remove();if(event.target.matches('.grade-cell-input'))event.target.setAttribute('aria-describedby','grades-score-help grades-dialog-error');}
   if(event.target.id==='request-search'){requestTerm=event.target.value;refreshRequests();}
   if(event.target.id==='request-code')requestFormHelp();
@@ -1956,13 +1949,13 @@ const auth=createAuthUI({api,esc,page,state:()=>state,classes:()=>classes,render
   onClear:()=>{
     offlineRestored=false;offlineAttendance.clearSession();privacyUI.clear();reportsUI.clear();profileLoadId++;
     portalTransition.cancel();
-    authEpoch++;parity.clear();development.clear();management.clear();enrollment.clear();
+    authEpoch++;staffCalendar.clear();parity.clear();development.clear();management.clear();enrollment.clear();
     connected=false;stopCamera();clearTimeout(reconnectTimer);reconnectTimer=null;connectionIssue=null;
     classes=[];students=[];classNames=[];state={sessions:[],marks:{},requests:[],requestEvents:[],downloads:[],accounts:[],active:null,isManager:false,pendingScans:[]};
     currentGradesData=null;gradesLoadToken++;gradesLoading=false;gradesClassId='';uncertainGradeSave=null;gradeColumn.clear();
     scanCandidate=null;scanConfirmation.replaceChildren();scanFeedback=null;scanBubble.hidden=true;workingClass='';studentTerm='';attendanceTerm='';requestTerm='';
     document.querySelectorAll('dialog[open]').forEach(d=>d.close());
-    for(const id of ['profile-dialog-content','grade-fields','care-dialog-content','request-history-content','feature-fields','parity-fields','parity-preview','request-student-options'])document.getElementById(id)?.replaceChildren();
+    for(const id of ['profile-dialog-content','grade-fields','care-dialog-content','request-history-content','feature-fields','parity-fields','parity-preview','request-student-options','request-code-options'])document.getElementById(id)?.replaceChildren();
     document.getElementById('connection-banner')?.remove();
   },
   onReady:async (user,{welcome=false,offline=null}={})=>{

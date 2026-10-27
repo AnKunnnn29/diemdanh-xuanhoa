@@ -4,7 +4,6 @@ export function flowSteps(stage='setup') {
   return `<ol class="easy-steps" aria-label="Các bước điểm danh">${['Chọn buổi','Điểm danh','Kiểm tra','Tải sổ'].map((label,n)=>`<li ${n===current?'aria-current="step"':''} class="${n<current?'done':''}"><span aria-hidden="true">${n+1}</span>${label}</li>`).join('')}</ol>`;
 }
 import {gradeFields, scorePattern, scoreValue, dailyWork} from './ux-utils.js';
-import {celebrationEvents} from './celebrations.js';
 
 export function startPage({esc,i,workingClass,today,longDate,students,requests,sessions=[],careNotes=[],pendingScans=[],offlineCount=0}) {
   return `<section class="easy-start"><div class="page-heading"><div><h1>Hôm nay bạn muốn làm gì?</h1><p>${esc(longDate(today()))}</p></div></div><p class="easy-class-note">${workingClass?`Lớp đang chọn: <strong>${esc(workingClass==='all'?'Tất cả lớp':workingClass)}</strong>`:'Chọn lớp ở phía trên để dùng cho các công việc bên dưới.'}</p>${workReminders({esc,i,workingClass,today,students,requests,sessions,careNotes,pendingScans,offlineCount})}<div class="easy-tasks">${[['attendance','qr','Điểm danh hôm nay','Quét thẻ hoặc nhập tên khi em quên thẻ.'],['students','search','Tìm thiếu nhi','Xem hồ sơ; liên hệ được mở riêng theo quyền.'],['grades','chart','Nhập điểm','Chọn em và loại điểm cần nhập.'],['files','download','Tải sổ lớp','Tải sổ theo quyền được cấp.']].map(([a,icon,label,help],n)=>`<div class="easy-task ${n===0?'primary':''}"><button class="button ${n===0?'button-primary':'button-secondary'}" data-easy-action="${a}">${i(icon)}${label}</button><p>${help}</p></div>`).join('')}</div><details class="easy-help"><summary>Hướng dẫn nhanh</summary><ol><li>Chọn lớp ở đầu trang.</li><li>Chọn việc cần làm, đọc hướng dẫn ngay trên màn hình.</li><li>Khi điểm danh xong, kiểm tra danh sách rồi kết thúc buổi.</li></ol><p>Nếu camera chưa mở được, bạn có thể nhập tên hoặc mã trên thẻ.</p></details></section>`;
@@ -25,7 +24,7 @@ export function requestWizard(form,review,validate=()=> '') {
     });
     const heading=form.querySelector('.dialog-heading');
     const code=form.querySelector('#request-code').closest('label'),kind=form.querySelector('#request-kind').closest('label');
-    stages[0].append(code,form.querySelector('#request-students'),form.querySelector('#request-person'),kind);
+    stages[0].append(code,form.querySelector('#request-person'),kind);
     stages[1].append(form.querySelector('.dialog-fields'),form.querySelector('#request-calendar-help'));
     stages[2].append(form.querySelector('[name=reason]').closest('label'),form.querySelector('[name=actor]').closest('label'));
     const summary=document.createElement('div');summary.id='request-review';summary.className='request-review';stages[2].prepend(summary);
@@ -60,7 +59,6 @@ export function requestWizard(form,review,validate=()=> '') {
 
 function workReminders({esc,i,workingClass,today,students,requests,sessions,careNotes,pendingScans=[],offlineCount=0}){
   const work=dailyWork({students,requests,sessions,careNotes,className:workingClass,date:today()});
-  const occasions=celebrationEvents(students,{today:today(),className:workingClass||'all'}).length;
   const codes=new Set(students.filter(s=>!workingClass||workingClass==='all'||s.className===workingClass).map(s=>s.id));
   const proxy=pendingScans.filter(s=>s.status==='pending'&&codes.has(s.code)).length;
   const requestLink=filter=>'#requests?'+new URLSearchParams({filter,...(workingClass?{class:workingClass}:{})});
@@ -69,7 +67,6 @@ function workReminders({esc,i,workingClass,today,students,requests,sessions,care
     proxy?`<a class="button button-secondary" href="#attendance">${proxy} lượt quét hộ chờ xử lý</a>`:'',
     offlineCount?`<a class="button button-secondary" href="#attendance">${offlineCount} lượt trên thiết bị cần đồng bộ</a>`:'',
     work.makeups?`<a class="button button-secondary" href="${esc(requestLink('due'))}">${work.makeups} lịch lễ bù đến hạn</a>`:'',
-    work.care?`<a class="button button-secondary" href="#care">${work.care} việc chăm sóc đến hẹn</a>`:'',
-    occasions?`<a class="button button-secondary" href="#celebrations">${occasions} dịp sinh nhật / bổn mạng trong 7 ngày tới</a>`:''].filter(Boolean);
+    work.care?`<a class="button button-secondary" href="#care">${work.care} việc chăm sóc đến hẹn</a>`:''].filter(Boolean);
   return `<section class="easy-today"><h2>Việc cần xử lý</h2>${links.length?`<div class="feature-actions">${links.slice(0,3).join('')}</div>${links.length>3?`<details class="easy-more-work"><summary>Xem thêm ${links.length-3} việc</summary><div class="feature-actions">${links.slice(3).join('')}</div></details>`:''}`:'<p>Chưa có việc đến hạn trong lớp đang chọn.</p>'}<p class="field-help">Theo lớp đang chọn. Lượt offline chỉ phản ánh thiết bị này.</p></section>`;
 }

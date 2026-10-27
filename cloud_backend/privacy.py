@@ -6,7 +6,7 @@ CAPABILITIES = ('contactRead', 'contactWrite', 'privateExport', 'proxy', 'report
 # lớp được phân công; Admin gồm toàn bộ lớp. Không còn cấp quyền thủ công.
 CONTACT_FIELDS = {'phone', 'parents', 'address'}
 PROFILE_FIELDS = ('saintName', 'fullName', 'gender', 'birthDate', 'baptismDate',
-                  'subParish', 'enrolledFrom', 'feastDay', 'feastConfirmed', 'feastConfirmedBy', 'feastConfirmedAt')
+                  'subParish', 'enrolledFrom')
 
 
 def grants(db, year, principal):

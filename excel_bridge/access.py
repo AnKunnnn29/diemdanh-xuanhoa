@@ -81,6 +81,7 @@ class Gateway:
             query={key:items[0] for key,items in query.items()}
             name=path.removeprefix('/api/admin/')
             if name=='staff': return management.staff()
+            if name=='celebrations': return management.staff_celebrations()
             if name=='audit': return management.audit(query)
             if name=='audit-export': return management.audit(query,True)
             if name=='years': return management.years()
