@@ -40,14 +40,15 @@ function displayPhone(number){
   if(/^\+84\d{9}$/u.test(number))return `+84 ${number.slice(3,6)} ${number.slice(6,9)} ${number.slice(9)}`;
   return number;
 }
+const sourcePhoneNote=number=>/^[1-9]\d{8}$/u.test(number)?'<small class="phone-source-note">Số nguồn có 9 chữ số. Cần đối chiếu; chưa tự thêm số 0.</small>':'';
 export function contactFields(student,{esc,helpId='parent-contact-help'}){
   const names=parentNames(student.parents),{phones,phoneNote}=parentPhones(student.phone);
   return `<label class="field">Tên cha<input name="fatherName" maxlength="200" value="${esc(names.fatherName)}" autocomplete="off"></label>
     <label class="field">Tên mẹ<input name="motherName" maxlength="200" value="${esc(names.motherName)}" autocomplete="off"></label>
     <label class="field">Tên phụ huynh<input name="guardianName" value="${esc(names.guardianName)}" aria-describedby="${esc(helpId)}"></label>
-    ${Array.from({length:Math.max(2,phones.length)},(_,index)=>`<label class="field">SĐT phụ huynh ${index+1}<input type="tel" name="parentPhone${index+1}" value="${esc(phones[index]||'')}" autocomplete="off" aria-describedby="${esc(helpId)}"></label>`).join('')}
+    ${Array.from({length:Math.max(2,phones.length)},(_,index)=>`<label class="field">SĐT phụ huynh ${index+1}<input type="tel" name="parentPhone${index+1}" value="${esc(phones[index]||'')}" autocomplete="off" aria-describedby="${esc(helpId)}">${sourcePhoneNote(phones[index]||'')}</label>`).join('')}
     ${phoneNote?`<label class="field">Liên hệ chưa tách được<input name="parentPhoneNote" value="${esc(phoneNote)}" aria-describedby="${esc(helpId)}"></label>`:''}
-    <p id="${esc(helpId)}" class="field-help parent-contact-help">Mỗi ô SĐT nhập một số. Số 1, 2 theo thứ tự liên hệ, chưa xác định là của cha hay mẹ.</p>`;
+    <p id="${esc(helpId)}" class="field-help parent-contact-help">Mỗi ô SĐT nhập một số. Số 1, 2 theo thứ tự liên hệ, chưa xác định là của cha hay mẹ.${names.guardianName&&!names.fatherName&&!names.motherName?' Nguồn chưa ghi rõ vai trò nên tên được giữ ở ô Tên phụ huynh.':''}</p>`;
 }
 export function encodeContactFields(values){
   const result={...values};
@@ -74,6 +75,6 @@ export function parentContactMarkup(student,{esc,icon='',names=true}){
   const entries=names?[['Tên cha',family.fatherName],['Tên mẹ',family.motherName],['Phụ huynh',family.guardianName]].filter(([,value])=>value):[];
   if(!entries.length&&!phones.length&&!phoneNote)return '<span class="text-slate-400">—</span>';
   return `<div class="parent-contacts">${entries.map(([label,value])=>`<div class="parent-contact parent-contact-name"><small>${label}</small><span>${esc(value)}</span></div>`).join('')}
-    ${phones.map((number,index)=>`<div class="parent-contact"><small>SĐT phụ huynh ${index+1}</small><a href="tel:${esc(number)}" class="phone-action" aria-label="${esc(`Gọi phụ huynh ${index+1} của ${student.fullName||student.name||'thiếu nhi'}: ${number}`)}">${icon}<span>${esc(displayPhone(number))}</span></a></div>`).join('')}
+    ${phones.map((number,index)=>`<div class="parent-contact"><small>SĐT phụ huynh ${index+1}</small><a href="tel:${esc(number)}" class="phone-action" aria-label="${esc(`Gọi phụ huynh ${index+1} của ${student.fullName||student.name||'thiếu nhi'}: ${number}`)}">${icon}<span>${esc(displayPhone(number))}</span></a>${sourcePhoneNote(number)}</div>`).join('')}
     ${phoneNote?`<div class="parent-contact parent-contact-note"><small>Liên hệ chưa tách được</small><span>${esc(phoneNote)}</span></div>`:''}</div>`;
 }
