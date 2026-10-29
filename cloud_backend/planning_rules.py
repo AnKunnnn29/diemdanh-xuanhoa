@@ -5,6 +5,7 @@ transaction, local database or background timer is imported.
 """
 import base64
 import csv
+import math
 import hashlib
 import io
 import json
@@ -283,10 +284,24 @@ class PlanningRules:
         if not isinstance(placements,list) or len(placements)!=len(self.catalog.students):
             raise ValueError('Danh sách lên lớp phải bao gồm từng thiếu nhi hiện tại.')
         codes,counts,issues=set(),{},[]
+        results = {}
         for p in placements:
             if not isinstance(p,dict) or p.get('code') not in self.catalog.students or p['code'] in codes:
                 raise ValueError('Mã thiếu nhi không hợp lệ hoặc bị trùng.')
             codes.add(p['code'])
+            if p.get('autoApproved') is True:
+                cid = self.catalog.students[p['code']]['classId']
+                if cid not in results:
+                    results[cid] = self.read_grades(cid, 3)
+                report = results[cid]
+                row = next((r for r in report['students'] if r['code'] == p['code']), {})
+                thresholds = report.get('thresholds', {})
+                numeric = lambda v: type(v) in (int, float) and math.isfinite(v)
+                valid = (not report.get('calculationIssues') and row.get('assessment') == 'ĐẠT'
+                    and all(numeric(v) for v in [row.get('diemGiaoLy'), row.get('combinedMassScore'), thresholds.get('catechism'), thresholds.get('attendance')])
+                    and row['diemGiaoLy'] >= thresholds['catechism'] and row['combinedMassScore'] >= thresholds['attendance'])
+                if not valid or not report.get('revision') or p.get('gradeRevision') != report['revision']:
+                    issues.append(p['code']+': kết quả đã đổi hoặc chưa đủ điều kiện tự động lên lớp. Mở lại danh sách để đọc kết quả mới.')
             if p.get('classId') not in self.catalog.classes and p.get('classId')!='graduate':
                 issues.append(p['code']+': chưa chọn lớp đích.')
             elif p['classId']!='graduate':
