@@ -65,7 +65,7 @@ body:not([data-view="home"]) .button { min-height:var(--control-height); height:
 .easy-steps li>span { width:2rem; height:2rem; display:grid; place-items:center; flex-shrink:0; border:var(--rule-hair) solid var(--color-rule-2); border-radius:var(--radius-pill); font-variant-numeric:tabular-nums; }
 .easy-steps [aria-current] { background:var(--color-accent-soft); color:var(--color-accent); border-radius:var(--radius-input); font-weight:700; }
 .easy-steps .done>span { background:var(--color-accent); color:var(--color-accent-ink); border-color:var(--color-accent); }
-.easy-setup { max-width:48rem; }
+.easy-setup { max-width:48rem; margin-inline:auto; }
 .easy-setup h2 { margin-bottom:var(--space-xs); }
 .easy-setup form { margin-top:var(--space-lg); }
 .easy-session-context { position:sticky; top:0; z-index:10; background:var(--color-paper, #fff9f5); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-md); margin-bottom:var(--space-lg); padding:var(--space-md); border:var(--rule-hair) solid var(--color-rule); border-radius:var(--radius-input); }
