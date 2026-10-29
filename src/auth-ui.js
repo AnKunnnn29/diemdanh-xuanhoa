@@ -67,7 +67,16 @@ export function createAuthUI({api,esc,page,onReady,onClear,pending,state,classes
     const classLabel=a=>a.role==='Admin'?'Toàn bộ':a.classIds.map(id=>classes().find(c=>c.id===id)?.name||id).join(', ')||'Chưa phân công';
     const searchText=a=>`${a.displayName} ${a.username} ${classLabel(a)}`;
     const count=state().accounts.filter(a=>matchesSearch(searchText(a),accountQuery)).length;
-    const sortedAccounts=[...state().accounts].sort((a,b)=>a.role!==b.role?(a.role==='Admin'?-1:b.role==='Admin'?1:a.role.localeCompare(b.role,'vi')):a.displayName.localeCompare(b.displayName,'vi'));
+    const classOrder=new Map(classes().map((c,index)=>[c.id,index]));
+    const firstClass=a=>Math.min(...(a.classIds||[]).map(id=>classOrder.get(id)??Infinity));
+    const sortedAccounts=[...state().accounts].sort((a,b)=>{
+      if(a.role!==b.role)return a.role==='Admin'?-1:b.role==='Admin'?1:a.role.localeCompare(b.role,'vi');
+      if(a.role!=='Admin'){
+        const left=firstClass(a),right=firstClass(b);
+        if(left!==right)return left<right?-1:1;
+      }
+      return a.displayName.localeCompare(b.displayName,'vi');
+    });
     return `<div class="accounts-page"><div class="page-heading"><h1>Tài khoản & phân quyền</h1><p>Cấp tài khoản cho GLV và ban trị sự. Admin xem toàn bộ; GLV truy cập các lớp được phân công.</p></div>
       <section class="card account-create"><h2>Tạo tài khoản</h2><form id="create-account-form"><label class="field">Họ tên<input name="displayName" required minlength="2" maxlength="100" autocomplete="name"></label><label class="field">Vai trò<select name="role"><option value="GLV">GLV · Quản lý lớp được phân công</option><option value="Admin">Admin · Quản trị, truy cập toàn bộ</option></select></label>${assignmentFields({classes:classes(),accounts:state().accounts,esc})}<button type="submit" class="button button-primary">Tạo tài khoản & phân công</button><p id="account-create-error" role="alert"></p></form><p class="field-help">Tên đăng nhập và mật khẩu tạm được tạo tự động. Người dùng phải đổi mật khẩu khi đăng nhập lần đầu.</p></section>
       <p class="account-assign-link"><a href="#teachers" class="button button-secondary">Phân công GLV vào lớp →</a></p>
