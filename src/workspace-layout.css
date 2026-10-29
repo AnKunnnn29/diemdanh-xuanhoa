@@ -272,3 +272,6 @@ dialog.staff-editor[open] { display:flex; flex-direction:column; }
   .feature-list>li>.feature-actions { margin:0; }
   .workspace-classbar small { display:none; }
 }
+
+.student-filters.student-filters-fixed { grid-template-columns:minmax(0,1fr); }
+.student-filters.student-filters-fixed>.field-help { grid-column:1; }
