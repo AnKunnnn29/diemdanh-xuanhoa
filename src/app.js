@@ -879,7 +879,7 @@ function renderGradesTable(data) {
         <tbody>
           ${gradeRows.map((s, idx) => `
             <tr>
-              <td class="sticky-col">
+              <td data-label="Thiếu nhi" class="sticky-col">
                 <div class="flex items-center gap-2">
                   <span class="text-slate-400 tabular">${idx + 1}.</span>
                   <div>
@@ -889,33 +889,33 @@ function renderGradesTable(data) {
                 </div>
               </td>
               ${isTerm ? `
-                <td>${khaoBaiDetails(s,{esc})}${missingGradeInputs(s)?'<p class="grade-source-note">Có TB HK nhưng chưa có điểm thành phần hiển thị. Cần đối chiếu sổ nguồn.</p>':''}</td>
-                <td class="font-bold tabular">${esc(gradeValue(s.kt15))}</td>
-                <td class="font-bold tabular">${esc(gradeValue(s.kt1Tiet))}</td>
-                <td class="font-bold tabular">${esc(gradeValue(s.thiKinh))}</td>
-                <td class="font-bold tabular">${esc(gradeValue(s.thiHk))}</td>
-                <td class="font-bold text-amber-600 tabular">${esc(gradeValue(s.tbHk))}</td>
-                <td><span class="grade-pill ${getGradeClass(s.xepLoai)}">${esc(s.xepLoai || '—')}</span></td>
-                <td class="font-bold tabular">${esc(s.xepHang ?? '—')}</td>
-                <td class="tabular">${esc(gradeValue(s.massRatio))}</td>
-                <td class="tabular">${esc(gradeValue(s.lessonRatio))}</td>
-                <td>
+                <td data-label="Khảo bài">${khaoBaiDetails(s,{esc})}${missingGradeInputs(s)?'<p class="grade-source-note">Có TB HK nhưng chưa có điểm thành phần hiển thị. Cần đối chiếu sổ nguồn.</p>':''}</td>
+                <td data-label="KT 15'" class="font-bold tabular">${esc(gradeValue(s.kt15))}</td>
+                <td data-label="KT 1 Tiết" class="font-bold tabular">${esc(gradeValue(s.kt1Tiet))}</td>
+                <td data-label="Thi Kinh" class="font-bold tabular">${esc(gradeValue(s.thiKinh))}</td>
+                <td data-label="Thi HK" class="font-bold tabular">${esc(gradeValue(s.thiHk))}</td>
+                <td data-label="TB HK" class="font-bold text-amber-600 tabular">${esc(gradeValue(s.tbHk))}</td>
+                <td data-label="Xếp Loại"><span class="grade-pill ${getGradeClass(s.xepLoai)}">${esc(s.xepLoai || '—')}</span></td>
+                <td data-label="Hạng" class="font-bold tabular">${esc(s.xepHang ?? '—')}</td>
+                <td data-label="Điểm danh lễ" class="tabular">${esc(gradeValue(s.massRatio))}</td>
+                <td data-label="Điểm danh GL" class="tabular">${esc(gradeValue(s.lessonRatio))}</td>
+                <td data-label="Thao tác">
                   <button class="button button-soft button-xs" data-edit-grade="${esc(s.code)}">
                     Nhập điểm
                   </button>
                 </td>
               ` : `
-                <td class="font-bold tabular">${esc(gradeValue(s.diemHk1))}</td>
-                <td class="font-bold tabular">${esc(gradeValue(s.diemHk2))}</td>
-                <td class="font-bold text-amber-600 tabular">${esc(gradeValue(s.diemGiaoLy))}</td>
-                <td><span class="grade-pill ${getGradeClass(s.xepLoai)}">${esc(s.xepLoai || '—')}</span></td>
-                <td class="tabular">${esc(gradeValue(s.massScore))}</td>
-                <td class="tabular">${esc(gradeValue(s.lessonScore))}</td>
-                <td class="tabular">${esc(gradeValue(s.combinedMassScore))}</td>
-                <td>${esc(gradeValue(s.assessment))}</td>
-                <td class="tabular">${esc(gradeValue(s.totalScore))}</td>
-                <td class="tabular">${esc(gradeValue(s.yearRank))}</td>
-                <td class="tabular">${esc(gradeValue(s.supplementalMass))}</td>
+                <td data-label="Điểm HK 1" class="font-bold tabular">${esc(gradeValue(s.diemHk1))}</td>
+                <td data-label="Điểm HK 2" class="font-bold tabular">${esc(gradeValue(s.diemHk2))}</td>
+                <td data-label="Điểm Giáo Lý" class="font-bold text-amber-600 tabular">${esc(gradeValue(s.diemGiaoLy))}</td>
+                <td data-label="Xếp Loại"><span class="grade-pill ${getGradeClass(s.xepLoai)}">${esc(s.xepLoai || '—')}</span></td>
+                <td data-label="Điểm chuyên cần lễ" class="tabular">${esc(gradeValue(s.massScore))}</td>
+                <td data-label="Điểm chuyên cần giáo lý" class="tabular">${esc(gradeValue(s.lessonScore))}</td>
+                <td data-label="Điểm Thánh Lễ tổng hợp" class="tabular">${esc(gradeValue(s.combinedMassScore))}</td>
+                <td data-label="Đánh giá">${esc(gradeValue(s.assessment))}</td>
+                <td data-label="Tổng điểm" class="tabular">${esc(gradeValue(s.totalScore))}</td>
+                <td data-label="Hạng cả năm" class="tabular">${esc(gradeValue(s.yearRank))}</td>
+                <td data-label="Lễ bổ sung" class="tabular">${esc(gradeValue(s.supplementalMass))}</td>
               `}
             </tr>
           `).join('')}

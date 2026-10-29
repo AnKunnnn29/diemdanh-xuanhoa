@@ -468,7 +468,7 @@ XH\u2026,H\u1ECD t\xEAn,2026-09-01"></textarea></label>${I()}<p class="field-hel
         <tbody>
           ${n.map((a,r)=>`
             <tr>
-              <td class="sticky-col">
+              <td data-label="Thi\u1EBFu nhi" class="sticky-col">
                 <div class="flex items-center gap-2">
                   <span class="text-slate-400 tabular">${r+1}.</span>
                   <div>
@@ -478,33 +478,33 @@ XH\u2026,H\u1ECD t\xEAn,2026-09-01"></textarea></label>${I()}<p class="field-hel
                 </div>
               </td>
               ${t?`
-                <td>${Ua(a,{esc:U})}${Ga(a)?'<p class="grade-source-note">C\xF3 TB HK nh\u01B0ng ch\u01B0a c\xF3 \u0111i\u1EC3m th\xE0nh ph\u1EA7n hi\u1EC3n th\u1ECB. C\u1EA7n \u0111\u1ED1i chi\u1EBFu s\u1ED5 ngu\u1ED3n.</p>':""}</td>
-                <td class="font-bold tabular">${U(_e(a.kt15))}</td>
-                <td class="font-bold tabular">${U(_e(a.kt1Tiet))}</td>
-                <td class="font-bold tabular">${U(_e(a.thiKinh))}</td>
-                <td class="font-bold tabular">${U(_e(a.thiHk))}</td>
-                <td class="font-bold text-amber-600 tabular">${U(_e(a.tbHk))}</td>
-                <td><span class="grade-pill ${t0(a.xepLoai)}">${U(a.xepLoai||"\u2014")}</span></td>
-                <td class="font-bold tabular">${U(a.xepHang??"\u2014")}</td>
-                <td class="tabular">${U(_e(a.massRatio))}</td>
-                <td class="tabular">${U(_e(a.lessonRatio))}</td>
-                <td>
+                <td data-label="Kh\u1EA3o b\xE0i">${Ua(a,{esc:U})}${Ga(a)?'<p class="grade-source-note">C\xF3 TB HK nh\u01B0ng ch\u01B0a c\xF3 \u0111i\u1EC3m th\xE0nh ph\u1EA7n hi\u1EC3n th\u1ECB. C\u1EA7n \u0111\u1ED1i chi\u1EBFu s\u1ED5 ngu\u1ED3n.</p>':""}</td>
+                <td data-label="KT 15'" class="font-bold tabular">${U(_e(a.kt15))}</td>
+                <td data-label="KT 1 Ti\u1EBFt" class="font-bold tabular">${U(_e(a.kt1Tiet))}</td>
+                <td data-label="Thi Kinh" class="font-bold tabular">${U(_e(a.thiKinh))}</td>
+                <td data-label="Thi HK" class="font-bold tabular">${U(_e(a.thiHk))}</td>
+                <td data-label="TB HK" class="font-bold text-amber-600 tabular">${U(_e(a.tbHk))}</td>
+                <td data-label="X\u1EBFp Lo\u1EA1i"><span class="grade-pill ${t0(a.xepLoai)}">${U(a.xepLoai||"\u2014")}</span></td>
+                <td data-label="H\u1EA1ng" class="font-bold tabular">${U(a.xepHang??"\u2014")}</td>
+                <td data-label="\u0110i\u1EC3m danh l\u1EC5" class="tabular">${U(_e(a.massRatio))}</td>
+                <td data-label="\u0110i\u1EC3m danh GL" class="tabular">${U(_e(a.lessonRatio))}</td>
+                <td data-label="Thao t\xE1c">
                   <button class="button button-soft button-xs" data-edit-grade="${U(a.code)}">
                     Nh\u1EADp \u0111i\u1EC3m
                   </button>
                 </td>
               `:`
-                <td class="font-bold tabular">${U(_e(a.diemHk1))}</td>
-                <td class="font-bold tabular">${U(_e(a.diemHk2))}</td>
-                <td class="font-bold text-amber-600 tabular">${U(_e(a.diemGiaoLy))}</td>
-                <td><span class="grade-pill ${t0(a.xepLoai)}">${U(a.xepLoai||"\u2014")}</span></td>
-                <td class="tabular">${U(_e(a.massScore))}</td>
-                <td class="tabular">${U(_e(a.lessonScore))}</td>
-                <td class="tabular">${U(_e(a.combinedMassScore))}</td>
-                <td>${U(_e(a.assessment))}</td>
-                <td class="tabular">${U(_e(a.totalScore))}</td>
-                <td class="tabular">${U(_e(a.yearRank))}</td>
-                <td class="tabular">${U(_e(a.supplementalMass))}</td>
+                <td data-label="\u0110i\u1EC3m HK 1" class="font-bold tabular">${U(_e(a.diemHk1))}</td>
+                <td data-label="\u0110i\u1EC3m HK 2" class="font-bold tabular">${U(_e(a.diemHk2))}</td>
+                <td data-label="\u0110i\u1EC3m Gi\xE1o L\xFD" class="font-bold text-amber-600 tabular">${U(_e(a.diemGiaoLy))}</td>
+                <td data-label="X\u1EBFp Lo\u1EA1i"><span class="grade-pill ${t0(a.xepLoai)}">${U(a.xepLoai||"\u2014")}</span></td>
+                <td data-label="\u0110i\u1EC3m chuy\xEAn c\u1EA7n l\u1EC5" class="tabular">${U(_e(a.massScore))}</td>
+                <td data-label="\u0110i\u1EC3m chuy\xEAn c\u1EA7n gi\xE1o l\xFD" class="tabular">${U(_e(a.lessonScore))}</td>
+                <td data-label="\u0110i\u1EC3m Th\xE1nh L\u1EC5 t\u1ED5ng h\u1EE3p" class="tabular">${U(_e(a.combinedMassScore))}</td>
+                <td data-label="\u0110\xE1nh gi\xE1">${U(_e(a.assessment))}</td>
+                <td data-label="T\u1ED5ng \u0111i\u1EC3m" class="tabular">${U(_e(a.totalScore))}</td>
+                <td data-label="H\u1EA1ng c\u1EA3 n\u0103m" class="tabular">${U(_e(a.yearRank))}</td>
+                <td data-label="L\u1EC5 b\u1ED5 sung" class="tabular">${U(_e(a.supplementalMass))}</td>
               `}
             </tr>
           `).join("")}
