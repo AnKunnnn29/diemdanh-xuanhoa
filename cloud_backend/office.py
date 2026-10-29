@@ -17,6 +17,7 @@ from .persistence import document, save_document, fingerprint, Download
 from .validation import profile_date
 from .backups import BackupRules
 from .years import YearRules
+from .year_workbook_import import WorkbookYearImport
 
 
 def csv_file(rows, filename):
@@ -27,7 +28,7 @@ def csv_file(rows, filename):
     return Download(stream.getvalue().encode('utf-8-sig'), filename, 'text/csv; charset=utf-8')
 
 
-class Office(BackupRules, YearRules, PlanningRules, Workflow):
+class Office(WorkbookYearImport, BackupRules, YearRules, PlanningRules, Workflow):
     READ_ACTIONS = {'system','notifications','excel-details','snapshot-export','snapshot-part','year-export','year-file','export-manifest',
         'admin/celebrations','admin/staff','admin/audit','admin/audit-export','admin/years','admin/year-history','admin/import-template','admin/admission-options'}
     def __init__(self, service, db, user):
@@ -560,7 +561,8 @@ class Office(BackupRules, YearRules, PlanningRules, Workflow):
         self.service.admin(self.actor_user)
         values = {k:v for k,v in incoming.items() if k not in ('actor','_manager','_bypass_time','user')}
         values.update(actor=self.user['displayName'],_manager=True)
-        methods = {'admin/class-preview':self.class_preview, 'admin/class-save':self.save_class,
+        methods = {'admin/year-workbook-preview':self.upload_year, 'admin/year-workbooks-preview':self.uploaded_year_preview, 'admin/year-workbooks-import':self.import_uploaded_year,
+            'admin/class-preview':self.class_preview, 'admin/class-save':self.save_class,
             'admin/class-create':self.create_class,'admin/student-create':self.create_student,
             'admin/import-preview':self.import_preview, 'admin/import-save':self.import_commit,
             'admin/staff-save':self.save_staff, 'admin/year-activate-preview':self.year_activate_preview,

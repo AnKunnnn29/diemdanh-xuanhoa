@@ -109,7 +109,7 @@ let scanMethod=preferences.scanMethod==='camera'||preferences.scanMethod==='text
 let attendanceStage='setup',attendanceDraft=null,attendanceSetupError='';
 if('largeText' in preferences){delete preferences.largeText;try{localStorage.setItem(storageKey,JSON.stringify(preferences));}catch{}}
 document.documentElement.removeAttribute('data-large-text');
-const development=createDevelopmentUI({state:()=>state,students:()=>students,classes:()=>classes,actor:()=>preferences.actor||'',studentFilter:()=>studentFilter,carePeople:()=>calculateCareMetrics().people,careMarks:()=>careMarks(),api,queueWrite,applyServer,render,today,shortDate,downloadBlob,rememberActor,toast,esc,i,reauthenticate:()=>auth.clear()});
+const development=createDevelopmentUI({state:()=>state,students:()=>students,classes:()=>classes,actor:()=>preferences.actor||'',onYearPrepared:()=>management.invalidateYears(),studentFilter:()=>studentFilter,carePeople:()=>calculateCareMetrics().people,careMarks:()=>careMarks(),api,queueWrite,applyServer,render,today,shortDate,downloadBlob,rememberActor,toast,esc,i,reauthenticate:()=>auth.clear()});
 const staffCalendar=createStaffCelebrationsUI({api,state:()=>state,render,esc,today});
 const management=createManagementUI({state:()=>state,classes:()=>classes,api,queueWrite,applyServer,render,toast,esc,reauthenticate:()=>auth.clear(),onStaffChanged:()=>staffCalendar.clear()});
 const enrollment=createEnrollmentUI({state:()=>state,classes:()=>classes,api,queueWrite,applyServer,render,toast,esc,today,

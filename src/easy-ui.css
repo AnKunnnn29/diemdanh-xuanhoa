@@ -253,3 +253,18 @@ html { scroll-padding-block:var(--space-lg) calc(var(--mobile-tabs-height) + env
  .promotion-mapping,.promotion-filters { grid-template-columns:minmax(0,1fr); }
  .promotion-row-fields { display:grid; grid-template-columns:minmax(0,1fr); }
 }
+
+#feature-dialog:has(#year-upload-editor) { width:min(60rem,calc(100vw - 2rem)); max-width:calc(100vw - 2rem); }
+.year-upload-files { list-style:none; padding:0; display:grid; gap:0.75rem; }
+.year-upload-files li { display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:space-between; align-items:center; padding:1rem; border:1px solid var(--color-rule); border-radius:var(--radius-input); }
+.year-upload-files li>div { min-width:0; flex:1 1 14rem; overflow-wrap:anywhere; }
+.year-upload-files p { margin-block:0.5rem 0; }
+.year-import-summary { padding-block:1rem; border-top:1px solid var(--color-rule); overflow-wrap:anywhere; }
+.year-import-ack { display:flex; gap:0.75rem; align-items:start; margin-block:1rem; }
+.year-import-ack input { width:1.25rem; height:1.25rem; flex-shrink:0; }
+#year-upload-editor input[type=file] { width:100%; min-width:0; max-width:100%; }
+
+.year-import-fields { border:0; padding:0; margin:0; min-width:0; }
+
+.year-file-picker { position:relative; max-width:100%; white-space:normal; }
+.year-file-picker:focus-within { outline:3px solid var(--color-accent); outline-offset:3px; }
